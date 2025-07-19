@@ -88,7 +88,12 @@ export default function PromptConfig({ config, onConfigChange, onGenerate, isGen
   
   const generateMutation = useMutation({
     mutationFn: async (promptConfig: PromptConfig) => {
+      console.log("Sending config:", JSON.stringify(promptConfig, null, 2));
       const response = await apiRequest("POST", "/api/prompts/generate", promptConfig);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
       return await response.json();
     },
     onSuccess: (data) => {
@@ -100,10 +105,11 @@ export default function PromptConfig({ config, onConfigChange, onGenerate, isGen
       });
     },
     onError: (error) => {
+      console.error("Generation error:", error);
       setIsGenerating(false);
       toast({
         title: "Generation failed",
-        description: "There was an error generating your prompt. Please try again.",
+        description: `Error: ${error.message || 'Please try again'}`,
         variant: "destructive",
       });
     },
