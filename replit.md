@@ -102,9 +102,19 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 ### January 19, 2025
+- **Comprehensive Category Expansion**: Added detailed video production categories
+  - 4-tab interface: Basic, Shot, Scene, Advanced
+  - Shot controls: composition, camera motion, frame rate, film grain
+  - Scene toggles: subject description, wardrobe, location, time of day, environment
+  - Visual options: action details, props, lighting setup, tone
+  - Audio elements: ambient sound, dialogue specifications
+  - Color palette and advanced cinematography options
+- **Natural Language Prompt Generation**: Changed from JSON output to paragraph format
+  - Prompts generated as flowing natural language text
+  - JSON format option remains available as secondary output
+  - Enhanced readability for AI video model consumption
 - **Copy Functionality Enhancement**: Added comprehensive copy-to-clipboard functionality
   - Main prompt text copy button
   - Dedicated JSON format copy button  
   - Individual copy buttons for each prompt variation
   - Toast notifications for successful copy operations
-- **User Interface Polish**: Improved usability with intuitive copy icons and clear feedback

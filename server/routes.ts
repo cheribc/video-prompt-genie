@@ -109,97 +109,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
   return httpServer;
 }
 
-// Helper function to generate comprehensive JSON prompt based on configuration
+// Helper function to generate natural language prompt based on configuration
 async function generatePromptFromConfig(config: PromptConfig): Promise<string> {
   const templates = getPromptTemplates();
   const categoryTemplates = templates[config.category] || templates["Sports & Athletics"];
   const baseTemplate = categoryTemplates[Math.floor(Math.random() * categoryTemplates.length)];
   
-  // Generate comprehensive JSON structure
-  const jsonPrompt: any = {
-    shot: {
-      composition: config.shot?.composition || "Medium shot",
-      camera_motion: config.shot?.camera_motion || "handheld",
-      frame_rate: config.shot?.frame_rate || "24 fps",
-      ...(config.shot?.film_grain && { film_grain: "fine Kodak grain overlay" })
-    }
-  };
-
-  // Add subject details if enabled
-  if (config.subject?.include_description || config.subject?.include_wardrobe) {
-    jsonPrompt.subject = {};
-    if (config.subject.include_description) {
-      jsonPrompt.subject.description = generateSubjectDescription(config.category);
-    }
+  let promptParts: string[] = [];
+  
+  // Start with shot composition
+  const shotDetails = [];
+  shotDetails.push(config.shot?.composition || "Medium shot");
+  if (config.shot?.camera_motion) {
+    shotDetails.push(`${config.shot.camera_motion} camera movement`);
+  }
+  if (config.shot?.frame_rate) {
+    shotDetails.push(`shot at ${config.shot.frame_rate}`);
+  }
+  if (config.shot?.film_grain) {
+    shotDetails.push("with fine film grain texture");
+  }
+  
+  promptParts.push(`${shotDetails.join(", ")}.`);
+  
+  // Add subject description
+  if (config.subject?.include_description) {
+    const subjectDesc = generateSubjectDescription(config.category);
+    promptParts.push(subjectDesc);
+    
     if (config.subject.include_wardrobe) {
-      jsonPrompt.subject.wardrobe = generateWardrobeDescription(config.category);
+      const wardrobeDesc = generateWardrobeDescription(config.category);
+      promptParts.push(`wearing ${wardrobeDesc.toLowerCase()}`);
     }
   }
-
-  // Add scene details if enabled
-  if (config.scene?.include_location || config.scene?.include_time_of_day || config.scene?.include_environment) {
-    jsonPrompt.scene = {};
-    if (config.scene.include_location) {
-      jsonPrompt.scene.location = generateLocationDescription(config.category);
-    }
-    if (config.scene.include_time_of_day) {
-      jsonPrompt.scene.time_of_day = getRandomTimeOfDay();
-    }
-    if (config.scene.include_environment) {
-      jsonPrompt.scene.environment = generateEnvironmentDescription(config.category);
-    }
+  
+  // Add main action
+  const baseAction = baseTemplate.action || generateActionDescription(config.category);
+  promptParts.push(`${baseAction}.`);
+  
+  // Add scene details
+  const sceneElements = [];
+  if (config.scene?.include_location) {
+    sceneElements.push(`Location: ${generateLocationDescription(config.category)}`);
   }
-
-  // Add visual details if enabled
-  if (config.visual_details?.include_action || config.visual_details?.include_props) {
-    jsonPrompt.visual_details = {};
-    if (config.visual_details.include_action) {
-      jsonPrompt.visual_details.action = baseTemplate.action || generateActionDescription(config.category);
-    }
-    if (config.visual_details.include_props) {
-      jsonPrompt.visual_details.props = generatePropsDescription(config.category);
-    }
+  if (config.scene?.include_time_of_day) {
+    sceneElements.push(`Time: ${getRandomTimeOfDay()}`);
   }
-
-  // Add cinematography if enabled
-  if (config.cinematography?.include_lighting || config.cinematography?.include_tone) {
-    jsonPrompt.cinematography = {};
-    if (config.cinematography.include_lighting) {
-      jsonPrompt.cinematography.lighting = generateLightingDescription(config.style);
-    }
-    if (config.cinematography.include_tone) {
-      jsonPrompt.cinematography.tone = generateToneDescription(config.style);
-    }
+  if (config.scene?.include_environment) {
+    sceneElements.push(generateEnvironmentDescription(config.category));
   }
-
-  // Add audio if enabled
-  if (config.audio?.include_ambient || config.audio?.include_dialogue) {
-    jsonPrompt.audio = {};
-    if (config.audio.include_ambient) {
-      jsonPrompt.audio.ambient = generateAmbientDescription(config.category);
-    }
-    if (config.audio.include_dialogue) {
-      jsonPrompt.audio.dialogue = {
-        style: "natural conversation",
-        voice: "documentary style (warm, measured, authoritative)",
-        duration: parseInt(config.duration.split('-')[0]) || 5
-      };
-    }
+  
+  if (sceneElements.length > 0) {
+    promptParts.push(sceneElements.join(". ") + ".");
   }
-
-  // Add color palette if enabled
-  if (config.color_palette) {
-    jsonPrompt.color_palette = generateColorPalette(config.style);
+  
+  // Add visual details
+  if (config.visual_details?.include_props) {
+    const propsDesc = generatePropsDescription(config.category);
+    promptParts.push(`Scene includes: ${propsDesc.toLowerCase()}.`);
   }
-
-  // Add settings
-  jsonPrompt.settings = {
-    background_music: false,
-    transitions: "none",
-    loop: false
-  };
-
-  // Add legacy effects to cinematography
+  
+  // Add cinematography details
+  const cinematographyElements = [];
+  if (config.cinematography?.include_lighting) {
+    cinematographyElements.push(`Lighting: ${generateLightingDescription(config.style)}`);
+  }
+  if (config.cinematography?.include_tone) {
+    cinematographyElements.push(`Overall tone: ${generateToneDescription(config.style)}`);
+  }
+  
+  // Add effects
   const effects = [];
   if (config.elements.weather_effects) {
     effects.push("dynamic weather effects");
@@ -211,13 +190,57 @@ async function generatePromptFromConfig(config: PromptConfig): Promise<string> {
     effects.push("fluid camera movement");
   }
   
-  if (effects.length > 0 && jsonPrompt.cinematography) {
-    jsonPrompt.cinematography.effects = effects.join(", ");
-  } else if (effects.length > 0) {
-    jsonPrompt.cinematography = { effects: effects.join(", ") };
+  if (effects.length > 0) {
+    cinematographyElements.push(`Enhanced with: ${effects.join(", ")}`);
   }
-
-  return JSON.stringify(jsonPrompt, null, 2);
+  
+  if (cinematographyElements.length > 0) {
+    promptParts.push(cinematographyElements.join(". ") + ".");
+  }
+  
+  // Add audio elements
+  if (config.audio?.include_ambient) {
+    const ambientDesc = generateAmbientDescription(config.category);
+    promptParts.push(`Audio: ${ambientDesc}.`);
+  }
+  
+  if (config.audio?.include_dialogue) {
+    const duration = parseInt(config.duration.split('-')[0]) || 5;
+    promptParts.push(`Features ${duration}-second dialogue segment with documentary-style narration.`);
+  }
+  
+  // Add color palette
+  if (config.color_palette) {
+    const colorDesc = generateColorPalette(config.style);
+    promptParts.push(`Color palette: ${colorDesc}.`);
+  }
+  
+  // Add style and complexity modifiers
+  if (config.style === "Cinematic") {
+    promptParts.push("Shot with cinematic production values and dramatic visual storytelling.");
+  } else if (config.style === "Documentary") {
+    promptParts.push("Captured with authentic documentary-style cinematography and natural lighting.");
+  } else if (config.style === "Commercial") {
+    promptParts.push("Filmed with polished commercial production quality and professional standards.");
+  } else if (config.style === "Artistic") {
+    promptParts.push("Created with artistic vision and innovative visual techniques.");
+  }
+  
+  // Add complexity and duration context
+  if (config.complexity === "Complex") {
+    promptParts.push("Intricate composition with multiple layered visual elements and detailed staging.");
+  }
+  
+  const durationContext = config.duration === "3-5 seconds" ? "in a quick, impactful moment" :
+                         config.duration === "5-10 seconds" ? "unfolding over several dramatic seconds" :
+                         config.duration === "10-15 seconds" ? "developing through an extended sequence" :
+                         "building through a complete narrative arc";
+  
+  promptParts.push(`Scene duration: ${config.duration}, ${durationContext}.`);
+  
+  promptParts.push("Photorealistic quality with stunning detail and professional video production standards.");
+  
+  return promptParts.join(" ");
 }
 
 // Helper function to generate prompt variations
