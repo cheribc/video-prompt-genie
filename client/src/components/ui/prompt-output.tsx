@@ -104,15 +104,33 @@ export default function PromptOutput({
   const handleCopyVariationJSON = async (variation: string) => {
     try {
       const jsonData = {
-        text: variation,
-        settings: {
-          category: config.category,
-          style: config.style,
-          duration: config.duration,
-          complexity: config.complexity,
-          elements: config.elements,
-        },
+        prompt: variation,
+        category: config.category,
+        style: config.style,
+        duration: config.duration,
+        complexity: config.complexity,
+        shot: config.shot,
+        cinematography: config.cinematography ? {
+          lighting_enabled: config.cinematography.include_lighting,
+          tone_enabled: config.cinematography.include_tone
+        } : undefined,
+        audio: config.audio ? {
+          ambient_enabled: config.audio.include_ambient,
+          dialogue_enabled: config.audio.include_dialogue
+        } : undefined,
+        effects: {
+          weather_effects: config.elements.weather_effects,
+          dynamic_lighting: config.elements.dynamic_lighting,
+          camera_movement: config.elements.camera_movement
+        }
       };
+
+      // Remove undefined properties
+      Object.keys(jsonData).forEach(key => {
+        if (jsonData[key] === undefined) {
+          delete jsonData[key];
+        }
+      });
 
       await navigator.clipboard.writeText(JSON.stringify(jsonData, null, 2));
       toast({
@@ -130,15 +148,33 @@ export default function PromptOutput({
 
   const formatVariationJSON = (variation: string) => {
     const jsonData = {
-      text: variation,
-      settings: {
-        category: config.category,
-        style: config.style,
-        duration: config.duration,
-        complexity: config.complexity,
-        elements: config.elements,
-      },
+      prompt: variation,
+      category: config.category,
+      style: config.style,
+      duration: config.duration,
+      complexity: config.complexity,
+      shot: config.shot,
+      cinematography: config.cinematography ? {
+        lighting_enabled: config.cinematography.include_lighting,
+        tone_enabled: config.cinematography.include_tone
+      } : undefined,
+      audio: config.audio ? {
+        ambient_enabled: config.audio.include_ambient,
+        dialogue_enabled: config.audio.include_dialogue
+      } : undefined,
+      effects: {
+        weather_effects: config.elements.weather_effects,
+        dynamic_lighting: config.elements.dynamic_lighting,
+        camera_movement: config.elements.camera_movement
+      }
     };
+
+    // Remove undefined properties
+    Object.keys(jsonData).forEach(key => {
+      if (jsonData[key] === undefined) {
+        delete jsonData[key];
+      }
+    });
 
     return JSON.stringify(jsonData, null, 2);
   };
@@ -157,15 +193,33 @@ export default function PromptOutput({
     if (!prompt) return;
 
     const jsonData = {
-      text: prompt,
-      settings: {
-        category: config.category,
-        style: config.style,
-        duration: config.duration,
-        complexity: config.complexity,
-        elements: config.elements,
-      },
+      prompt: prompt,
+      category: config.category,
+      style: config.style,
+      duration: config.duration,
+      complexity: config.complexity,
+      shot: config.shot,
+      cinematography: config.cinematography ? {
+        lighting_enabled: config.cinematography.include_lighting,
+        tone_enabled: config.cinematography.include_tone
+      } : undefined,
+      audio: config.audio ? {
+        ambient_enabled: config.audio.include_ambient,
+        dialogue_enabled: config.audio.include_dialogue
+      } : undefined,
+      effects: {
+        weather_effects: config.elements.weather_effects,
+        dynamic_lighting: config.elements.dynamic_lighting,
+        camera_movement: config.elements.camera_movement
+      }
     };
+
+    // Remove undefined properties
+    Object.keys(jsonData).forEach(key => {
+      if (jsonData[key] === undefined) {
+        delete jsonData[key];
+      }
+    });
 
     const blob = new Blob([JSON.stringify(jsonData, null, 2)], {
       type: "application/json",
@@ -194,15 +248,33 @@ export default function PromptOutput({
     if (!prompt) return;
 
     const jsonData = {
-      text: prompt,
-      settings: {
-        category: config.category,
-        style: config.style,
-        duration: config.duration,
-        complexity: config.complexity,
-        elements: config.elements,
-      },
+      prompt: prompt,
+      category: config.category,
+      style: config.style,
+      duration: config.duration,
+      complexity: config.complexity,
+      shot: config.shot,
+      cinematography: config.cinematography ? {
+        lighting_enabled: config.cinematography.include_lighting,
+        tone_enabled: config.cinematography.include_tone
+      } : undefined,
+      audio: config.audio ? {
+        ambient_enabled: config.audio.include_ambient,
+        dialogue_enabled: config.audio.include_dialogue
+      } : undefined,
+      effects: {
+        weather_effects: config.elements.weather_effects,
+        dynamic_lighting: config.elements.dynamic_lighting,
+        camera_movement: config.elements.camera_movement
+      }
     };
+
+    // Remove undefined properties
+    Object.keys(jsonData).forEach(key => {
+      if (jsonData[key] === undefined) {
+        delete jsonData[key];
+      }
+    });
 
     return JSON.stringify(jsonData, null, 2);
   };

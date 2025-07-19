@@ -132,15 +132,14 @@ async function generatePromptFromConfig(config: PromptConfig): Promise<string> {
   
   promptParts.push(`${shotDetails.join(", ")}.`);
   
-  // Add subject description
-  if (config.subject?.include_description) {
-    const subjectDesc = generateSubjectDescription(config.category);
-    promptParts.push(subjectDesc);
-    
-    if (config.subject.include_wardrobe) {
-      const wardrobeDesc = generateWardrobeDescription(config.category);
-      promptParts.push(`wearing ${wardrobeDesc.toLowerCase()}`);
-    }
+  // Always include subject description for text-to-video generation
+  const subjectDesc = generateSubjectDescription(config.category);
+  promptParts.push(subjectDesc);
+  
+  // Add wardrobe if enabled
+  if (config.subject?.include_wardrobe) {
+    const wardrobeDesc = generateWardrobeDescription(config.category);
+    promptParts.push(`wearing ${wardrobeDesc.toLowerCase()}`);
   }
   
   // Add main action
@@ -270,34 +269,34 @@ function getRandomComplexity(): string {
 function generateSubjectDescription(category: string): string {
   const subjects = {
     "Sports & Athletics": [
-      "Professional athlete in peak physical condition, mid-30s with athletic build and focused intensity",
-      "Young competitor with determined expression, wearing team colors and protective gear",
-      "Experienced sports figure with weathered features showing years of dedication"
+      "Athletic woman in her late 20s with shoulder-length blonde hair pulled back, wearing blue and white team jersey, focused intense eyes, muscular build from years of training",
+      "Young male soccer player, early 20s with short dark hair, tan complexion, wearing red team uniform with sweat glistening, determined expression",
+      "Professional tennis player, mid-30s woman with curly brown hair, wearing white athletic wear, graceful yet powerful stance, years of experience evident in her confident demeanor"
     ],
     "Urban & Street": [
-      "Urban artist in streetwear, confident posture with creative energy",
-      "City dweller navigating metropolitan environment with purposeful movement",
-      "Street performer with expressive features and dynamic presence"
+      "Hip-hop dancer, early 20s Black male with athletic build, wearing baggy jeans and graphic hoodie, gold chain necklace, confident smile and expressive brown eyes",
+      "Street artist, mid-20s woman with purple-streaked hair, paint-stained denim jacket over vintage band t-shirt, creative energy radiating from her focused expression",
+      "Parkour athlete, late 20s mixed-race male with lean muscular build, wearing fitted black clothing and fingerless gloves, alert hazel eyes scanning the urban environment"
     ],
     "Nature & Wildlife": [
-      "Wildlife subject in natural habitat, displaying raw power and instinctive behavior",
-      "Natural phenomenon showcasing the beauty and force of the elements",
-      "Outdoor enthusiast adapted to wilderness environment"
+      "Majestic golden eagle with 6-foot wingspan, sharp amber eyes, dark brown and golden feathers catching sunlight, powerful talons extended in flight",
+      "Mountain wildlife photographer, 40s bearded man in earth-tone outdoor gear, weathered hands holding professional camera, patient and observant demeanor",
+      "Wild grizzly bear, massive 800-pound male with thick brown fur, intelligent dark eyes, powerful shoulders and distinctive hump, moving with surprising grace"
     ],
     "Human Drama": [
-      "Individual with expressive features conveying deep emotion and authenticity",
-      "Character in moment of personal revelation, showing vulnerability and strength",
-      "Person engaged in meaningful activity with passionate dedication"
+      "Piano teacher, 50s woman with graying hair in elegant bun, wearing flowing cream blouse, gentle yet passionate expression while playing, wedding ring catching light",
+      "Young father, early 30s with kind eyes and slight beard stubble, wearing casual button-down shirt, tender expression while interacting with child",
+      "Chef in professional kitchen, 40s Latino man with salt-and-pepper hair, white chef coat with food stains, intense concentration while cooking, calloused hands from years of work"
     ],
     "Vehicle Action": [
-      "Skilled driver with focused concentration and professional technique",
-      "Racing enthusiast displaying precision and control under pressure",
-      "Vehicle operator demonstrating mastery of complex machinery"
+      "Formula 1 driver, late 20s with sharp features visible through helmet visor, wearing red racing suit with sponsor logos, gloved hands gripping steering wheel with precision",
+      "Motorcycle racer, mid-30s woman with athletic build, wearing leather racing suit and protective helmet, fierce determination in her posture and stance",
+      "Rally car driver, 35-year-old man with focused blue eyes, wearing flame-resistant racing suit and helmet, weathered hands showing years of motorsport experience"
     ],
     "Adventure & Extreme": [
-      "Extreme sports athlete with fearless expression and specialized equipment",
-      "Adventure seeker pushing physical and mental boundaries",
-      "Outdoor specialist with weather-worn features and expert technique"
+      "Rock climber, athletic woman in her 30s with braided auburn hair, wearing climbing harness and chalk-dusted hands, sinewy arms and legs, determined expression scaling cliff face",
+      "Professional surfer, 25-year-old man with sun-bleached hair and tanned skin, wearing black wetsuit, balanced stance on surfboard, reading the massive wave with expert timing",
+      "Skydiving instructor, experienced 40s woman with short blonde hair, wearing colorful jumpsuit and goggles, confident smile and strong build from years of extreme sports"
     ]
   };
   const categorySubjects = subjects[category] || subjects["Sports & Athletics"];
