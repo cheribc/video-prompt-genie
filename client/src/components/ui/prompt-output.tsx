@@ -99,6 +99,39 @@ export default function PromptOutput({
     }
   };
 
+  const handleCopyVariationJSON = async (variation: string) => {
+    try {
+      const jsonData = {
+        prompt: variation,
+        settings: {
+          category: config.category,
+          style: config.style,
+          duration: config.duration,
+          complexity: config.complexity,
+          elements: config.elements,
+        },
+        metadata: {
+          generated_at: new Date().toISOString(),
+          version: "1.0.0",
+          template_id: undefined,
+          type: "variation",
+        },
+      };
+
+      await navigator.clipboard.writeText(JSON.stringify(jsonData, null, 2));
+      toast({
+        title: "Success",
+        description: "Variation JSON copied to clipboard!",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to copy variation JSON.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleExportJSON = () => {
     if (!prompt) return;
 
@@ -273,14 +306,24 @@ export default function PromptOutput({
                           <Badge variant="secondary">{config.complexity}</Badge>
                         </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleCopyVariation(variation)}
-                        className="ml-4 text-slate-400 hover:text-slate-600"
-                      >
-                        <Copy className="w-4 h-4" />
-                      </Button>
+                      <div className="flex items-center space-x-1 ml-4">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleCopyVariation(variation)}
+                          className="text-slate-400 hover:text-slate-600"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleCopyVariationJSON(variation)}
+                          className="text-slate-400 hover:text-slate-600"
+                        >
+                          <Code className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
