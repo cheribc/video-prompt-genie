@@ -9,6 +9,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Generate a new prompt based on configuration
   app.post("/api/prompts/generate", async (req, res) => {
     try {
+      console.log("Raw request body:", JSON.stringify(req.body, null, 2));
       const config = promptConfigSchema.parse(req.body);
       const generatedPrompt = await generatePromptFromConfig(config);
       
@@ -34,10 +35,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const prompt = await storage.createPrompt(promptData);
       res.json(prompt);
     } catch (error) {
+      console.error("Generation error:", error);
       if (error instanceof z.ZodError) {
+        console.error("Validation errors:", error.errors);
         res.status(400).json({ message: "Invalid configuration", errors: error.errors });
       } else {
-        res.status(500).json({ message: "Failed to generate prompt" });
+        res.status(500).json({ message: "Failed to generate prompt", error: error.message });
       }
     }
   });
