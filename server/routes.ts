@@ -109,46 +109,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
   return httpServer;
 }
 
-// Helper function to generate prompts based on configuration
+// Helper function to generate comprehensive JSON prompt based on configuration
 async function generatePromptFromConfig(config: PromptConfig): Promise<string> {
-  const prompts = getPromptTemplates();
-  const categoryPrompts = prompts[config.category] || prompts["Sports & Athletics"];
-  const basePrompt = categoryPrompts[Math.floor(Math.random() * categoryPrompts.length)];
+  const templates = getPromptTemplates();
+  const categoryTemplates = templates[config.category] || templates["Sports & Athletics"];
+  const baseTemplate = categoryTemplates[Math.floor(Math.random() * categoryTemplates.length)];
   
-  let enhancedPrompt = basePrompt;
-  
-  // Add style-specific elements
-  if (config.style === "Cinematic") {
-    enhancedPrompt += " Shot with cinematic camera movement and dramatic lighting";
-  } else if (config.style === "Documentary") {
-    enhancedPrompt += " Captured with professional documentary-style cinematography";
-  } else if (config.style === "Commercial") {
-    enhancedPrompt += " Filmed with polished commercial production values";
-  } else if (config.style === "Artistic") {
-    enhancedPrompt += " Created with artistic vision and creative camera work";
+  // Generate comprehensive JSON structure
+  const jsonPrompt: any = {
+    shot: {
+      composition: config.shot?.composition || "Medium shot",
+      camera_motion: config.shot?.camera_motion || "handheld",
+      frame_rate: config.shot?.frame_rate || "24 fps",
+      ...(config.shot?.film_grain && { film_grain: "fine Kodak grain overlay" })
+    }
+  };
+
+  // Add subject details if enabled
+  if (config.subject?.include_description || config.subject?.include_wardrobe) {
+    jsonPrompt.subject = {};
+    if (config.subject.include_description) {
+      jsonPrompt.subject.description = generateSubjectDescription(config.category);
+    }
+    if (config.subject.include_wardrobe) {
+      jsonPrompt.subject.wardrobe = generateWardrobeDescription(config.category);
+    }
   }
-  
-  // Add duration context
-  if (config.duration === "3-5 seconds") {
-    enhancedPrompt += " in a quick, impactful moment";
-  } else if (config.duration === "5-10 seconds") {
-    enhancedPrompt += " unfolding over several dramatic seconds";
-  } else if (config.duration === "10-15 seconds") {
-    enhancedPrompt += " developing through an extended sequence";
-  } else if (config.duration === "15-30 seconds") {
-    enhancedPrompt += " building through a complete narrative arc";
+
+  // Add scene details if enabled
+  if (config.scene?.include_location || config.scene?.include_time_of_day || config.scene?.include_environment) {
+    jsonPrompt.scene = {};
+    if (config.scene.include_location) {
+      jsonPrompt.scene.location = generateLocationDescription(config.category);
+    }
+    if (config.scene.include_time_of_day) {
+      jsonPrompt.scene.time_of_day = getRandomTimeOfDay();
+    }
+    if (config.scene.include_environment) {
+      jsonPrompt.scene.environment = generateEnvironmentDescription(config.category);
+    }
   }
-  
-  // Add complexity modifiers
-  if (config.complexity === "Simple") {
-    enhancedPrompt += ". Clean, focused composition";
-  } else if (config.complexity === "Medium") {
-    enhancedPrompt += ". Balanced composition with multiple elements";
-  } else if (config.complexity === "Complex") {
-    enhancedPrompt += ". Intricate composition with layered visual elements";
+
+  // Add visual details if enabled
+  if (config.visual_details?.include_action || config.visual_details?.include_props) {
+    jsonPrompt.visual_details = {};
+    if (config.visual_details.include_action) {
+      jsonPrompt.visual_details.action = baseTemplate.action || generateActionDescription(config.category);
+    }
+    if (config.visual_details.include_props) {
+      jsonPrompt.visual_details.props = generatePropsDescription(config.category);
+    }
   }
-  
-  // Add element modifiers
+
+  // Add cinematography if enabled
+  if (config.cinematography?.include_lighting || config.cinematography?.include_tone) {
+    jsonPrompt.cinematography = {};
+    if (config.cinematography.include_lighting) {
+      jsonPrompt.cinematography.lighting = generateLightingDescription(config.style);
+    }
+    if (config.cinematography.include_tone) {
+      jsonPrompt.cinematography.tone = generateToneDescription(config.style);
+    }
+  }
+
+  // Add audio if enabled
+  if (config.audio?.include_ambient || config.audio?.include_dialogue) {
+    jsonPrompt.audio = {};
+    if (config.audio.include_ambient) {
+      jsonPrompt.audio.ambient = generateAmbientDescription(config.category);
+    }
+    if (config.audio.include_dialogue) {
+      jsonPrompt.audio.dialogue = {
+        style: "natural conversation",
+        voice: "documentary style (warm, measured, authoritative)",
+        duration: parseInt(config.duration.split('-')[0]) || 5
+      };
+    }
+  }
+
+  // Add color palette if enabled
+  if (config.color_palette) {
+    jsonPrompt.color_palette = generateColorPalette(config.style);
+  }
+
+  // Add settings
+  jsonPrompt.settings = {
+    background_music: false,
+    transitions: "none",
+    loop: false
+  };
+
+  // Add legacy effects to cinematography
   const effects = [];
   if (config.elements.weather_effects) {
     effects.push("dynamic weather effects");
@@ -160,13 +211,13 @@ async function generatePromptFromConfig(config: PromptConfig): Promise<string> {
     effects.push("fluid camera movement");
   }
   
-  if (effects.length > 0) {
-    enhancedPrompt += `. Features ${effects.join(", ")}`;
+  if (effects.length > 0 && jsonPrompt.cinematography) {
+    jsonPrompt.cinematography.effects = effects.join(", ");
+  } else if (effects.length > 0) {
+    jsonPrompt.cinematography = { effects: effects.join(", ") };
   }
-  
-  enhancedPrompt += ". Photorealistic quality with stunning detail.";
-  
-  return enhancedPrompt;
+
+  return JSON.stringify(jsonPrompt, null, 2);
 }
 
 // Helper function to generate prompt variations
@@ -192,43 +243,373 @@ function getRandomComplexity(): string {
   return complexities[Math.floor(Math.random() * complexities.length)];
 }
 
-function getPromptTemplates(): Record<string, string[]> {
-  return {
+// Helper functions for generating different content categories
+function generateSubjectDescription(category: string): string {
+  const subjects = {
     "Sports & Athletics": [
-      "A professional athlete in peak physical condition performs a spectacular diving catch during a crucial moment in the game. The scene unfolds in slow motion as the player launches through the air, muscles tensed and focused, reaching for a perfectly thrown ball against the backdrop of a packed stadium",
-      "A young quarterback sprints across the field under stadium lights, dodging defenders in a high-stakes playoff game. The camera follows with dynamic tracking shots as cleats dig into the turf and jerseys flutter in motion",
-      "A soccer player executes a perfect bicycle kick in slow motion, with the ball sailing through rain droplets toward the goal as the crowd erupts in anticipation",
-      "A basketball player leaps for a slam dunk, captured from below with dramatic lighting that highlights the determination in their expression and the power of their movement"
+      "Professional athlete in peak physical condition, mid-30s with athletic build and focused intensity",
+      "Young competitor with determined expression, wearing team colors and protective gear",
+      "Experienced sports figure with weathered features showing years of dedication"
     ],
     "Urban & Street": [
-      "A parkour athlete leaps between rooftops in an urban cityscape at golden hour, with the city skyline creating a dramatic backdrop for their fluid movements",
-      "A motorcycle courier weaves through busy downtown traffic in a high-speed chase, with neon lights reflecting off wet asphalt and buildings blurring past",
-      "A street dancer performs complex moves on a graffiti-covered wall as crowds gather, with urban elements creating texture and rhythm in the composition",
-      "A skateboarder launches off a ramp in an underground parking garage, captured mid-air with dramatic lighting cutting through the concrete environment"
+      "Urban artist in streetwear, confident posture with creative energy",
+      "City dweller navigating metropolitan environment with purposeful movement",
+      "Street performer with expressive features and dynamic presence"
     ],
     "Nature & Wildlife": [
-      "An eagle soars through a mountain valley with wings spread wide against storm clouds, showcasing the raw power and grace of wildlife in its natural habitat",
-      "Ocean waves crash against rocky cliffs in slow motion during a dramatic sunset, creating a symphony of water and light",
-      "A cheetah sprints across the African savanna in pursuit of its prey, muscles rippling with each stride as dust kicks up behind",
-      "A wolf pack moves through a snow-covered forest during twilight, their breath visible in the cold air as they navigate through the trees"
-    ],
-    "Vehicle Action": [
-      "A sports car drifts around a mountain curve at high speed, tires smoking as the driver maintains perfect control through the challenging turn",
-      "A motorcycle racer leans into a tight corner on a professional track, knee nearly touching the asphalt as they push the limits of physics",
-      "An off-road vehicle launches over a sand dune in the desert, suspended in mid-air against a backdrop of endless golden sand",
-      "A vintage muscle car accelerates down an empty highway at sunset, chrome reflecting the warm light as the engine roars"
+      "Wildlife subject in natural habitat, displaying raw power and instinctive behavior",
+      "Natural phenomenon showcasing the beauty and force of the elements",
+      "Outdoor enthusiast adapted to wilderness environment"
     ],
     "Human Drama": [
-      "A pianist's hands move across the keys during an emotional performance, captured in intimate detail as they pour their soul into the music",
-      "A chef works intensively in a busy kitchen, flames leaping from pans as they orchestrate a culinary masterpiece under pressure",
-      "A teacher inspires students in a classroom, gesturing passionately as knowledge and enthusiasm fill the space",
-      "A parent embraces their child after a long separation, raw emotion evident in every movement and expression"
+      "Individual with expressive features conveying deep emotion and authenticity",
+      "Character in moment of personal revelation, showing vulnerability and strength",
+      "Person engaged in meaningful activity with passionate dedication"
+    ],
+    "Vehicle Action": [
+      "Skilled driver with focused concentration and professional technique",
+      "Racing enthusiast displaying precision and control under pressure",
+      "Vehicle operator demonstrating mastery of complex machinery"
     ],
     "Adventure & Extreme": [
-      "A rock climber scales a sheer cliff face during golden hour, chalk dust visible on their hands as they reach for the next hold",
-      "A skydiver freefalls through clouds, arms spread wide as they experience the ultimate freedom of flight",
-      "A surfer rides a massive wave, perfectly balanced as tons of water curl overhead in a display of natural power",
-      "A mountain biker navigates a treacherous trail, launching off natural jumps while maintaining perfect control"
+      "Extreme sports athlete with fearless expression and specialized equipment",
+      "Adventure seeker pushing physical and mental boundaries",
+      "Outdoor specialist with weather-worn features and expert technique"
+    ]
+  };
+  const categorySubjects = subjects[category] || subjects["Sports & Athletics"];
+  return categorySubjects[Math.floor(Math.random() * categorySubjects.length)];
+}
+
+function generateWardrobeDescription(category: string): string {
+  const wardrobe = {
+    "Sports & Athletics": [
+      "Professional team jersey, athletic shorts, high-performance cleats",
+      "Racing suit with sponsor logos, protective helmet, specialized footwear",
+      "Training gear with moisture-wicking fabric, compression elements"
+    ],
+    "Urban & Street": [
+      "Streetwear ensemble with designer sneakers, graphic elements",
+      "Urban casual with layered textures, contemporary accessories",
+      "Hip-hop inspired outfit with bold colors and statement pieces"
+    ],
+    "Nature & Wildlife": [
+      "Outdoor expedition gear with weather-resistant materials",
+      "Field researcher attire with practical pockets and earth tones",
+      "Safari-style clothing with sun protection and utility features"
+    ],
+    "Human Drama": [
+      "Business professional attire reflecting character's occupation",
+      "Casual everyday clothing with personal style elements",
+      "Formal wear appropriate to dramatic scene context"
+    ],
+    "Vehicle Action": [
+      "Racing suit with flame-resistant materials, sponsor patches",
+      "Mechanic coveralls with tool accessories, safety equipment",
+      "Driving gloves, protective helmet, professional motorsport attire"
+    ],
+    "Adventure & Extreme": [
+      "Technical outdoor gear with safety equipment and weatherproofing",
+      "Extreme sports attire with protective padding and specialized accessories",
+      "Adventure clothing with quick-dry materials and multiple pockets"
+    ]
+  };
+  const categoryWardrobe = wardrobe[category] || wardrobe["Sports & Athletics"];
+  return categoryWardrobe[Math.floor(Math.random() * categoryWardrobe.length)];
+}
+
+function generateLocationDescription(category: string): string {
+  const locations = {
+    "Sports & Athletics": [
+      "Professional stadium with packed stands and field lighting",
+      "Training facility with modern equipment and clean lines",
+      "Outdoor sports complex with natural grass and scenic backdrop"
+    ],
+    "Urban & Street": [
+      "Downtown cityscape with towering buildings and neon signs",
+      "Street-level urban environment with graffiti and concrete textures",
+      "Rooftop location overlooking metropolitan skyline"
+    ],
+    "Nature & Wildlife": [
+      "Pristine wilderness with untouched natural beauty",
+      "National park setting with diverse ecosystem elements",
+      "Remote outdoor location far from civilization"
+    ],
+    "Human Drama": [
+      "Interior domestic space with warm lighting and personal touches",
+      "Professional workplace environment with contemporary design",
+      "Public space where human stories naturally unfold"
+    ],
+    "Vehicle Action": [
+      "Professional racing track with safety barriers and timing equipment",
+      "Winding mountain road with challenging curves and elevation",
+      "Urban street circuit with city backdrop and tight corners"
+    ],
+    "Adventure & Extreme": [
+      "Remote mountain location with dramatic elevation and exposure",
+      "Extreme sports venue with specialized safety equipment",
+      "Wilderness setting that challenges human limits and abilities"
+    ]
+  };
+  const categoryLocations = locations[category] || locations["Sports & Athletics"];
+  return categoryLocations[Math.floor(Math.random() * categoryLocations.length)];
+}
+
+function getRandomTimeOfDay(): string {
+  const times = ["dawn", "early morning", "mid-morning", "noon", "afternoon", "golden hour", "dusk", "evening", "night", "late night"];
+  return times[Math.floor(Math.random() * times.length)];
+}
+
+function generateEnvironmentDescription(category: string): string {
+  const environments = {
+    "Sports & Athletics": [
+      "High-energy atmosphere with crowd noise and competitive tension",
+      "Professional setting with pristine conditions and optimal lighting",
+      "Training environment with focused intensity and athletic equipment"
+    ],
+    "Urban & Street": [
+      "Urban energy with city sounds, traffic, and metropolitan atmosphere",
+      "Street culture environment with music, art, and community presence",
+      "Contemporary city setting with modern architecture and urban design"
+    ],
+    "Nature & Wildlife": [
+      "Natural soundscape with wind, water, and wildlife ambiance",
+      "Pristine environment showcasing untouched natural beauty",
+      "Ecosystem in balance with seasonal changes and natural rhythms"
+    ],
+    "Human Drama": [
+      "Intimate setting that supports emotional storytelling",
+      "Environment that reflects character's internal state",
+      "Space designed for human connection and meaningful interaction"
+    ],
+    "Vehicle Action": [
+      "High-speed environment with engine sounds and mechanical precision",
+      "Racing atmosphere with competitive energy and technical focus",
+      "Automotive setting showcasing speed, power, and control"
+    ],
+    "Adventure & Extreme": [
+      "Challenging environment that tests human limits and courage",
+      "Natural setting with elements of danger and excitement",
+      "Extreme conditions requiring specialized skills and equipment"
+    ]
+  };
+  const categoryEnvironments = environments[category] || environments["Sports & Athletics"];
+  return categoryEnvironments[Math.floor(Math.random() * categoryEnvironments.length)];
+}
+
+function generateActionDescription(category: string): string {
+  const actions = {
+    "Sports & Athletics": [
+      "Executes perfect technique with athletic precision and competitive intensity",
+      "Demonstrates peak physical performance in crucial competitive moment",
+      "Shows athletic mastery through fluid movement and strategic thinking"
+    ],
+    "Urban & Street": [
+      "Moves through urban environment with street-smart confidence",
+      "Navigates city obstacles with creative problem-solving and style",
+      "Expresses urban culture through movement and artistic expression"
+    ],
+    "Nature & Wildlife": [
+      "Displays natural instincts and survival behaviors in wild habitat",
+      "Demonstrates adaptation to natural environment and seasonal changes",
+      "Shows harmony between creature and pristine natural setting"
+    ],
+    "Human Drama": [
+      "Reveals deep emotion through authentic facial expression and body language",
+      "Communicates complex feelings through subtle gestural storytelling",
+      "Displays human vulnerability and strength in meaningful moment"
+    ],
+    "Vehicle Action": [
+      "Demonstrates expert vehicle control through technical driving skill",
+      "Shows precision and timing in high-speed competitive situation",
+      "Executes complex maneuver with mechanical understanding and experience"
+    ],
+    "Adventure & Extreme": [
+      "Pushes physical and mental boundaries in challenging extreme situation",
+      "Shows courage and skill in face of natural dangers and obstacles",
+      "Demonstrates specialized technique required for extreme sports mastery"
+    ]
+  };
+  const categoryActions = actions[category] || actions["Sports & Athletics"];
+  return categoryActions[Math.floor(Math.random() * categoryActions.length)];
+}
+
+function generatePropsDescription(category: string): string {
+  const props = {
+    "Sports & Athletics": [
+      "Professional sports equipment, team banners, scoreboards",
+      "Training apparatus, coaching tools, athletic accessories",
+      "Competition markers, timing equipment, safety gear"
+    ],
+    "Urban & Street": [
+      "Street art supplies, urban furniture, city infrastructure",
+      "Performance props, music equipment, cultural artifacts",
+      "Transportation elements, architectural features, signage"
+    ],
+    "Nature & Wildlife": [
+      "Natural elements like rocks, branches, water features",
+      "Scientific equipment for field research and observation",
+      "Camping gear, hiking equipment, outdoor survival tools"
+    ],
+    "Human Drama": [
+      "Personal belongings that tell character's story",
+      "Work-related tools and professional equipment",
+      "Domestic items that create intimate atmosphere"
+    ],
+    "Vehicle Action": [
+      "Racing equipment, tools, mechanical parts",
+      "Track safety gear, timing devices, communication equipment",
+      "Vehicle modifications, performance indicators, technical instruments"
+    ],
+    "Adventure & Extreme": [
+      "Specialized safety equipment, climbing gear, protective elements",
+      "Adventure tools, navigation equipment, emergency supplies",
+      "Extreme sports apparatus, weather monitoring devices"
+    ]
+  };
+  const categoryProps = props[category] || props["Sports & Athletics"];
+  return categoryProps[Math.floor(Math.random() * categoryProps.length)];
+}
+
+function generateLightingDescription(style: string): string {
+  const lighting = {
+    "Cinematic": [
+      "Dramatic three-point lighting with deep shadows and strong contrast",
+      "Golden hour natural lighting with warm practical sources",
+      "Professional film lighting with controlled shadows and highlights"
+    ],
+    "Documentary": [
+      "Available light with minimal artificial enhancement for authenticity",
+      "Natural lighting that preserves realistic atmosphere",
+      "Documentary-style lighting that supports truth and realism"
+    ],
+    "Commercial": [
+      "Polished professional lighting with even coverage and product focus",
+      "High-key lighting setup for commercial appeal and clarity",
+      "Studio-quality lighting with perfect exposure and color balance"
+    ],
+    "Artistic": [
+      "Creative lighting design with experimental shadows and color temperature",
+      "Artistic illumination that supports visual storytelling and mood",
+      "Innovative lighting approach with unique angles and creative techniques"
+    ]
+  };
+  const styleLighting = lighting[style] || lighting["Cinematic"];
+  return styleLighting[Math.floor(Math.random() * styleLighting.length)];
+}
+
+function generateToneDescription(style: string): string {
+  const tones = {
+    "Cinematic": ["dramatic and immersive", "epic and heroic", "intimate and emotional"],
+    "Documentary": ["authentic and truthful", "observational and respectful", "educational and informative"],
+    "Commercial": ["polished and appealing", "energetic and engaging", "professional and trustworthy"],
+    "Artistic": ["creative and expressive", "experimental and unique", "visually striking and memorable"]
+  };
+  const styleTones = tones[style] || tones["Cinematic"];
+  return styleTones[Math.floor(Math.random() * styleTones.length)];
+}
+
+function generateAmbientDescription(category: string): string {
+  const ambient = {
+    "Sports & Athletics": [
+      "Stadium crowd noise, whistle sounds, equipment impacts",
+      "Training facility acoustics with echo and equipment noise",
+      "Outdoor sports sounds with natural environment audio"
+    ],
+    "Urban & Street": [
+      "City traffic, street music, urban construction sounds",
+      "Metropolitan ambiance with sirens and crowd noise",
+      "Street culture audio with music and conversation"
+    ],
+    "Nature & Wildlife": [
+      "Natural soundscape with wind, water, and animal calls",
+      "Wilderness audio with rustling leaves and distant sounds",
+      "Ecosystem sounds reflecting natural harmony and seasonal changes"
+    ],
+    "Human Drama": [
+      "Interior acoustics with room tone and household sounds",
+      "Workplace ambiance with office equipment and conversation",
+      "Domestic environment with familiar everyday audio"
+    ],
+    "Vehicle Action": [
+      "Engine sounds, tire noise, mechanical audio elements",
+      "Racing environment with crowd noise and competition audio",
+      "Automotive sounds reflecting speed and mechanical precision"
+    ],
+    "Adventure & Extreme": [
+      "Outdoor adventure sounds with wind and natural elements",
+      "Extreme sports audio with equipment and environmental noise",
+      "Wilderness sounds reflecting challenge and excitement"
+    ]
+  };
+  const categoryAmbient = ambient[category] || ambient["Sports & Athletics"];
+  return categoryAmbient[Math.floor(Math.random() * categoryAmbient.length)];
+}
+
+function generateColorPalette(style: string): string {
+  const palettes = {
+    "Cinematic": [
+      "Warm amber and deep blue contrast with rich shadows",
+      "Desaturated earth tones with selective color highlights",
+      "High contrast black and white with selective golden accents"
+    ],
+    "Documentary": [
+      "Natural color palette preserving authentic environmental tones",
+      "Realistic color grading with minimal saturation enhancement",
+      "True-to-life colors that support documentary authenticity"
+    ],
+    "Commercial": [
+      "Bright, saturated colors with high energy and appeal",
+      "Clean color palette with strong brand-friendly tones",
+      "Polished color grading with commercial shine and clarity"
+    ],
+    "Artistic": [
+      "Experimental color treatment with creative artistic vision",
+      "Unique color combinations that support visual storytelling",
+      "Creative color grading with artistic flair and innovation"
+    ]
+  };
+  const stylePalettes = palettes[style] || palettes["Cinematic"];
+  return stylePalettes[Math.floor(Math.random() * stylePalettes.length)];
+}
+
+function getPromptTemplates(): Record<string, any[]> {
+  return {
+    "Sports & Athletics": [
+      { action: "performs spectacular diving catch during crucial game moment" },
+      { action: "sprints across field under stadium lights, dodging defenders" },
+      { action: "executes perfect bicycle kick in slow motion" },
+      { action: "leaps for slam dunk with dramatic lighting" }
+    ],
+    "Urban & Street": [
+      { action: "leaps between rooftops in urban cityscape at golden hour" },
+      { action: "weaves through busy downtown traffic in high-speed chase" },
+      { action: "performs complex dance moves on graffiti-covered wall" },
+      { action: "launches off ramp in underground parking garage" }
+    ],
+    "Nature & Wildlife": [
+      { action: "soars through mountain valley with wings spread wide" },
+      { action: "crashes against rocky cliffs in slow motion during sunset" },
+      { action: "sprints across African savanna in pursuit of prey" },
+      { action: "moves through snow-covered forest during twilight" }
+    ],
+    "Vehicle Action": [
+      { action: "drifts around mountain curve at high speed" },
+      { action: "leans into tight corner on professional track" },
+      { action: "launches over sand dune in desert" },
+      { action: "accelerates down empty highway at sunset" }
+    ],
+    "Human Drama": [
+      { action: "moves hands across piano keys during emotional performance" },
+      { action: "works intensively in busy kitchen with flames leaping" },
+      { action: "inspires students with passionate gesturing" },
+      { action: "embraces child after long separation" }
+    ],
+    "Adventure & Extreme": [
+      { action: "scales sheer cliff face during golden hour" },
+      { action: "freefalls through clouds with arms spread wide" },
+      { action: "rides massive wave with perfect balance" },
+      { action: "navigates treacherous trail, launching off jumps" }
     ]
   };
 }

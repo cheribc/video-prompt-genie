@@ -61,6 +61,34 @@ export const promptConfigSchema = z.object({
     dynamic_lighting: z.boolean(),
     camera_movement: z.boolean(),
   }),
+  shot: z.object({
+    composition: z.string(),
+    camera_motion: z.string(),
+    frame_rate: z.string(),
+    film_grain: z.boolean(),
+  }).optional(),
+  subject: z.object({
+    include_description: z.boolean(),
+    include_wardrobe: z.boolean(),
+  }).optional(),
+  scene: z.object({
+    include_location: z.boolean(),
+    include_time_of_day: z.boolean(),
+    include_environment: z.boolean(),
+  }).optional(),
+  visual_details: z.object({
+    include_action: z.boolean(),
+    include_props: z.boolean(),
+  }).optional(),
+  cinematography: z.object({
+    include_lighting: z.boolean(),
+    include_tone: z.boolean(),
+  }).optional(),
+  audio: z.object({
+    include_ambient: z.boolean(),
+    include_dialogue: z.boolean(),
+  }).optional(),
+  color_palette: z.boolean().optional(),
 });
 
 export type PromptConfig = z.infer<typeof promptConfigSchema>;

@@ -16,6 +16,34 @@ export default function PromptGenerator() {
       dynamic_lighting: true,
       camera_movement: true,
     },
+    shot: {
+      composition: "Medium shot",
+      camera_motion: "handheld",
+      frame_rate: "24 fps",
+      film_grain: false,
+    },
+    subject: {
+      include_description: true,
+      include_wardrobe: false,
+    },
+    scene: {
+      include_location: true,
+      include_time_of_day: true,
+      include_environment: true,
+    },
+    visual_details: {
+      include_action: true,
+      include_props: false,
+    },
+    cinematography: {
+      include_lighting: true,
+      include_tone: true,
+    },
+    audio: {
+      include_ambient: false,
+      include_dialogue: false,
+    },
+    color_palette: false,
   });
 
   const [generatedPrompt, setGeneratedPrompt] = useState<string>("");
