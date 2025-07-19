@@ -5,11 +5,18 @@ import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Loader2, Zap } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import type { PromptConfig } from "@shared/schema";
 
 interface PromptConfigProps {
   config: PromptConfig;
   onConfigChange: (config: PromptConfig) => void;
+  onGenerate: (prompt: string) => void;
+  isGenerating: boolean;
+  setIsGenerating: (generating: boolean) => void;
 }
 
 const CATEGORIES = [
@@ -76,7 +83,39 @@ const FRAME_RATES = [
   "120 fps (slow motion)"
 ];
 
-export default function PromptConfig({ config, onConfigChange }: PromptConfigProps) {
+export default function PromptConfig({ config, onConfigChange, onGenerate, isGenerating, setIsGenerating }: PromptConfigProps) {
+  const { toast } = useToast();
+  
+  const generateMutation = useMutation({
+    mutationFn: async (promptConfig: PromptConfig) => {
+      return apiRequest<{ prompt: string }>("/api/prompts/generate", {
+        method: "POST",
+        body: JSON.stringify(promptConfig),
+      });
+    },
+    onSuccess: (data) => {
+      onGenerate(data.prompt);
+      setIsGenerating(false);
+      toast({
+        title: "Prompt generated successfully!",
+        description: "Your AI video prompt is ready to use.",
+      });
+    },
+    onError: (error) => {
+      setIsGenerating(false);
+      toast({
+        title: "Generation failed",
+        description: "There was an error generating your prompt. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleGenerate = () => {
+    setIsGenerating(true);
+    generateMutation.mutate(config);
+  };
+
   const complexityValue = config.complexity === "Simple" ? [1] : 
                          config.complexity === "Medium" ? [2] : [3];
 
@@ -649,6 +688,28 @@ export default function PromptConfig({ config, onConfigChange }: PromptConfigPro
               </div>
             </div>
           )}
+
+          {/* Generate Button */}
+          <div className="pt-6 border-t border-slate-200">
+            <Button
+              onClick={handleGenerate}
+              disabled={isGenerating}
+              size="lg"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Zap className="w-5 h-5 mr-2" />
+                  Generate AI Video Prompt
+                </>
+              )}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
