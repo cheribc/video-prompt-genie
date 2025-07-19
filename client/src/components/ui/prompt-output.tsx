@@ -11,7 +11,7 @@ import type { PromptConfig } from "@shared/schema";
 
 interface PromptOutputProps {
   config: PromptConfig;
-  prompt: string;
+  prompt: any; // Full prompt object from API
   isGenerating: boolean;
 }
 
@@ -28,20 +28,27 @@ export default function PromptOutput({
   const variationsMutation = useMutation({
     mutationFn: async (config: PromptConfig) => {
       const response = await apiRequest("POST", "/api/prompts/variations", config);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
       return await response.json();
     },
     onSuccess: (data) => {
-      setVariations(data.variations);
-      setIsGeneratingVariations(false);
-      toast({
-        title: "Success",
-        description: "Prompt variations generated!",
-      });
+      if (data && data.variations) {
+        setVariations(data.variations);
+        setIsGeneratingVariations(false);
+        toast({
+          title: "Success",
+          description: `Generated ${data.variations.length} variations`,
+        });
+      }
     },
-    onError: () => {
+    onError: (error: Error) => {
+      console.error("Variations error:", error);
       toast({
         title: "Error", 
-        description: "Failed to generate variations.",
+        description: `Failed to generate variations: ${error.message}`,
         variant: "destructive",
       });
       setIsGeneratingVariations(false);
@@ -224,11 +231,11 @@ export default function PromptOutput({
     const sentences = promptText.split('. ');
     
     // Try to identify subject description (usually the first long descriptive sentence)
-    const subject = sentences[0].includes(',') && sentences[0].length > 50 ? sentences[0] : null;
+    const subject = sentences[0] && sentences[0].includes(',') && sentences[0].length > 50 ? sentences[0] : null;
     
     // Try to identify action (usually comes after subject or is the first sentence if no subject)
     const actionIndex = subject ? 1 : 0;
-    const action = sentences[actionIndex] && !sentences[actionIndex].includes('Shot with') && !sentences[actionIndex].includes('Enhanced with') 
+    const action = sentences[actionIndex] && !sentences[actionIndex].includes('Shot with') && !sentences[actionIndex].includes('Enhanced with') && !sentences[actionIndex].includes('Captured with')
       ? sentences[actionIndex] 
       : null;
 

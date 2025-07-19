@@ -14,7 +14,7 @@ import type { PromptConfig } from "@shared/schema";
 interface PromptConfigProps {
   config: PromptConfig;
   onConfigChange: (config: PromptConfig) => void;
-  onGenerate: (prompt: string) => void;
+  onGenerate: (promptData: any) => void;
   isGenerating: boolean;
   setIsGenerating: (generating: boolean) => void;
 }
@@ -88,13 +88,11 @@ export default function PromptConfig({ config, onConfigChange, onGenerate, isGen
   
   const generateMutation = useMutation({
     mutationFn: async (promptConfig: PromptConfig) => {
-      return apiRequest<{ prompt: string }>("/api/prompts/generate", {
-        method: "POST",
-        body: JSON.stringify(promptConfig),
-      });
+      const response = await apiRequest("POST", "/api/prompts/generate", promptConfig);
+      return await response.json();
     },
     onSuccess: (data) => {
-      onGenerate(data.prompt);
+      onGenerate(data);
       setIsGenerating(false);
       toast({
         title: "Prompt generated successfully!",

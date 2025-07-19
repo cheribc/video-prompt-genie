@@ -51,7 +51,7 @@ export default function PromptGenerator() {
     color_palette: false,
   });
 
-  const [generatedPrompt, setGeneratedPrompt] = useState<string>("");
+  const [generatedPrompt, setGeneratedPrompt] = useState<any>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
   return (
