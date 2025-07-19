@@ -190,35 +190,10 @@ export default function PromptOutput({
   const handleExportJSON = () => {
     if (!prompt) return;
 
-    const jsonData = {
-      category: config.category,
-      style: config.style,
-      duration: config.duration,
-      complexity: config.complexity,
-      shot: config.shot,
-      cinematography: config.cinematography ? {
-        lighting_enabled: config.cinematography.include_lighting,
-        tone_enabled: config.cinematography.include_tone
-      } : undefined,
-      audio: config.audio ? {
-        ambient_enabled: config.audio.include_ambient,
-        dialogue_enabled: config.audio.include_dialogue
-      } : undefined,
-      effects: {
-        weather_effects: config.elements.weather_effects,
-        dynamic_lighting: config.elements.dynamic_lighting,
-        camera_movement: config.elements.camera_movement
-      }
-    };
-
-    // Remove undefined properties
-    Object.keys(jsonData).forEach(key => {
-      if (jsonData[key] === undefined) {
-        delete jsonData[key];
-      }
-    });
-
-    const blob = new Blob([JSON.stringify(jsonData, null, 2)], {
+    // Use the same parsing logic as formatJSON
+    const jsonContent = formatJSON();
+    
+    const blob = new Blob([jsonContent], {
       type: "application/json",
     });
     const url = URL.createObjectURL(blob);
@@ -242,33 +217,54 @@ export default function PromptOutput({
   };
 
   const formatJSON = () => {
-    if (!prompt) return;
+    if (!prompt || !prompt.prompt) return "";
+
+    // Parse the natural language prompt to extract components
+    const promptText = prompt.prompt;
+    const sentences = promptText.split('. ');
+    
+    // Try to identify subject description (usually the first long descriptive sentence)
+    const subject = sentences[0].includes(',') && sentences[0].length > 50 ? sentences[0] : null;
+    
+    // Try to identify action (usually comes after subject or is the first sentence if no subject)
+    const actionIndex = subject ? 1 : 0;
+    const action = sentences[actionIndex] && !sentences[actionIndex].includes('Shot with') && !sentences[actionIndex].includes('Enhanced with') 
+      ? sentences[actionIndex] 
+      : null;
 
     const jsonData = {
-      category: config.category,
-      style: config.style,
-      duration: config.duration,
-      complexity: config.complexity,
-      shot: config.shot,
-      cinematography: config.cinematography ? {
-        lighting_enabled: config.cinematography.include_lighting,
-        tone_enabled: config.cinematography.include_tone
-      } : undefined,
-      audio: config.audio ? {
-        ambient_enabled: config.audio.include_ambient,
-        dialogue_enabled: config.audio.include_dialogue
-      } : undefined,
-      effects: {
-        weather_effects: config.elements.weather_effects,
-        dynamic_lighting: config.elements.dynamic_lighting,
-        camera_movement: config.elements.camera_movement
-      }
+      prompt: {
+        subject: subject,
+        action: action,
+        full_text: promptText
+      },
+      configuration: {
+        category: config.category,
+        style: config.style,
+        duration: config.duration,
+        complexity: config.complexity,
+        shot: config.shot,
+        cinematography: config.cinematography ? {
+          lighting_enabled: config.cinematography.include_lighting,
+          tone_enabled: config.cinematography.include_tone
+        } : undefined,
+        audio: config.audio ? {
+          ambient_enabled: config.audio.include_ambient,
+          dialogue_enabled: config.audio.include_dialogue
+        } : undefined,
+        effects: {
+          weather_effects: config.elements.weather_effects,
+          dynamic_lighting: config.elements.dynamic_lighting,
+          camera_movement: config.elements.camera_movement
+        }
+      },
+      metadata: prompt.metadata
     };
 
-    // Remove undefined properties
-    Object.keys(jsonData).forEach(key => {
-      if (jsonData[key] === undefined) {
-        delete jsonData[key];
+    // Remove undefined properties from configuration
+    Object.keys(jsonData.configuration).forEach(key => {
+      if (jsonData.configuration[key] === undefined) {
+        delete jsonData.configuration[key];
       }
     });
 
