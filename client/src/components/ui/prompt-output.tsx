@@ -3,7 +3,8 @@ import { useMutation } from "@tanstack/react-query";
 import { Button } from "./button";
 import { Card, CardContent, CardHeader, CardTitle } from "./card";
 import { Badge } from "./badge";
-import { Copy, Download, Code, RefreshCw, ChevronRight } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./collapsible";
+import { Copy, Download, Code, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { PromptConfig } from "@shared/schema";
@@ -22,6 +23,7 @@ export default function PromptOutput({
   const { toast } = useToast();
   const [variations, setVariations] = useState<string[]>([]);
   const [isGeneratingVariations, setIsGeneratingVariations] = useState(false);
+  const [expandedVariations, setExpandedVariations] = useState<Set<number>>(new Set());
 
   const variationsMutation = useMutation({
     mutationFn: async (config: PromptConfig) => {
@@ -130,6 +132,37 @@ export default function PromptOutput({
         variant: "destructive",
       });
     }
+  };
+
+  const formatVariationJSON = (variation: string) => {
+    const jsonData = {
+      prompt: variation,
+      settings: {
+        category: config.category,
+        style: config.style,
+        duration: config.duration,
+        complexity: config.complexity,
+        elements: config.elements,
+      },
+      metadata: {
+        generated_at: new Date().toISOString(),
+        version: "1.0.0",
+        template_id: undefined,
+        type: "variation",
+      },
+    };
+
+    return JSON.stringify(jsonData, null, 2);
+  };
+
+  const toggleVariationExpanded = (index: number) => {
+    const newExpanded = new Set(expandedVariations);
+    if (newExpanded.has(index)) {
+      newExpanded.delete(index);
+    } else {
+      newExpanded.add(index);
+    }
+    setExpandedVariations(newExpanded);
   };
 
   const handleExportJSON = () => {
@@ -293,39 +326,67 @@ export default function PromptOutput({
             ) : variations.length > 0 ? (
               <div className="space-y-3">
                 {variations.map((variation, index) => (
-                  <div
-                    key={index}
-                    className="p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <p className="text-sm text-slate-800 mb-2">{variation}</p>
-                        <div className="flex items-center space-x-2 text-xs text-slate-500">
-                          <Badge variant="secondary">{config.category.split(' ')[0]}</Badge>
-                          <Badge variant="secondary">{config.duration}</Badge>
-                          <Badge variant="secondary">{config.complexity}</Badge>
+                  <Collapsible key={index} open={expandedVariations.has(index)} onOpenChange={() => toggleVariationExpanded(index)}>
+                    <div className="border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+                      <div className="p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <p className="text-sm text-slate-800 mb-2">{variation}</p>
+                            <div className="flex items-center space-x-2 text-xs text-slate-500">
+                              <Badge variant="secondary">{config.category.split(' ')[0]}</Badge>
+                              <Badge variant="secondary">{config.duration}</Badge>
+                              <Badge variant="secondary">{config.complexity}</Badge>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-1 ml-4">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleCopyVariation(variation)}
+                              className="text-slate-400 hover:text-slate-600"
+                            >
+                              <Copy className="w-4 h-4" />
+                            </Button>
+                            <CollapsibleTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-slate-400 hover:text-slate-600"
+                              >
+                                <Code className="w-4 h-4" />
+                                {expandedVariations.has(index) ? (
+                                  <ChevronUp className="w-4 h-4 ml-1" />
+                                ) : (
+                                  <ChevronDown className="w-4 h-4 ml-1" />
+                                )}
+                              </Button>
+                            </CollapsibleTrigger>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-1 ml-4">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleCopyVariation(variation)}
-                          className="text-slate-400 hover:text-slate-600"
-                        >
-                          <Copy className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleCopyVariationJSON(variation)}
-                          className="text-slate-400 hover:text-slate-600"
-                        >
-                          <Code className="w-4 h-4" />
-                        </Button>
-                      </div>
+                      <CollapsibleContent>
+                        <div className="px-4 pb-4">
+                          <div className="bg-slate-900 rounded-lg p-4 border-t border-slate-200">
+                            <div className="flex items-center justify-between mb-3">
+                              <span className="text-xs text-green-400 font-medium">JSON Format</span>
+                              <Button
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleCopyVariationJSON(variation)}
+                                className="text-green-400 hover:text-green-300 text-xs h-6"
+                              >
+                                <Copy className="w-3 h-3 mr-1" />
+                                Copy
+                              </Button>
+                            </div>
+                            <pre className="text-xs text-green-400 font-mono leading-relaxed overflow-x-auto">
+                              {formatVariationJSON(variation)}
+                            </pre>
+                          </div>
+                        </div>
+                      </CollapsibleContent>
                     </div>
-                  </div>
+                  </Collapsible>
                 ))}
               </div>
             ) : (
