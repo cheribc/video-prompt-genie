@@ -64,6 +64,25 @@ export default function PromptOutput({
     }
   };
 
+  const handleCopyJSON = async () => {
+    if (!prompt) return;
+    
+    try {
+      const jsonData = formatJSON();
+      await navigator.clipboard.writeText(jsonData);
+      toast({
+        title: "Success",
+        description: "JSON copied to clipboard!",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to copy JSON to clipboard.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleExportJSON = () => {
     if (!prompt) return;
 
@@ -177,9 +196,9 @@ export default function PromptOutput({
                 <Badge variant="secondary" className="bg-green-100 text-green-700">
                   Valid JSON
                 </Badge>
-                <Button variant="outline" size="sm">
-                  <Code className="w-4 h-4 mr-1" />
-                  Format
+                <Button variant="outline" size="sm" onClick={handleCopyJSON}>
+                  <Copy className="w-4 h-4 mr-1" />
+                  Copy JSON
                 </Button>
               </div>
             </div>
