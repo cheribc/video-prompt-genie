@@ -16,6 +16,11 @@ export default function PromptGenerator() {
       dynamic_lighting: true,
       camera_movement: true,
     },
+    // Section toggles - all disabled by default for simplicity
+    enable_shot_details: false,
+    enable_scene_details: false,
+    enable_advanced_details: false,
+    // Optional detailed configurations (default values when enabled)
     shot: {
       composition: "Medium shot",
       camera_motion: "handheld",

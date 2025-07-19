@@ -21,8 +21,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         elements: config.elements,
         metadata: {
           generated_at: new Date().toISOString(),
-          version: "1.0.0",
-          template_id: undefined,
+          version: "2.0.0",
+          config_hash: JSON.stringify(config).substring(0, 20),
+          enabled_features: {
+            shot_details: config.enable_shot_details || false,
+            scene_details: config.enable_scene_details || false,
+            advanced_details: config.enable_advanced_details || false,
+          },
         },
       };
 
@@ -117,64 +122,70 @@ async function generatePromptFromConfig(config: PromptConfig): Promise<string> {
   
   let promptParts: string[] = [];
   
-  // Start with shot composition
-  const shotDetails = [];
-  shotDetails.push(config.shot?.composition || "Medium shot");
-  if (config.shot?.camera_motion) {
-    shotDetails.push(`${config.shot.camera_motion} camera movement`);
-  }
-  if (config.shot?.frame_rate) {
-    shotDetails.push(`shot at ${config.shot.frame_rate}`);
-  }
-  if (config.shot?.film_grain) {
-    shotDetails.push("with fine film grain texture");
-  }
-  
-  promptParts.push(`${shotDetails.join(", ")}.`);
-  
-  // Always include subject description for text-to-video generation
-  const subjectDesc = generateSubjectDescription(config.category);
-  promptParts.push(subjectDesc);
-  
-  // Add wardrobe if enabled
-  if (config.subject?.include_wardrobe) {
-    const wardrobeDesc = generateWardrobeDescription(config.category);
-    promptParts.push(`wearing ${wardrobeDesc.toLowerCase()}`);
+  // Start with shot composition if enabled
+  if (config.enable_shot_details && config.shot) {
+    const shotDetails = [];
+    shotDetails.push(config.shot.composition || "Medium shot");
+    if (config.shot.camera_motion && config.shot.camera_motion !== "static") {
+      shotDetails.push(`${config.shot.camera_motion} camera movement`);
+    }
+    if (config.shot.frame_rate) {
+      shotDetails.push(`shot at ${config.shot.frame_rate}`);
+    }
+    if (config.shot.film_grain) {
+      shotDetails.push("with fine film grain texture");
+    }
+    promptParts.push(`${shotDetails.join(", ")}.`);
   }
   
-  // Add main action
-  const baseAction = baseTemplate.action || generateActionDescription(config.category);
-  promptParts.push(`${baseAction}.`);
-  
-  // Add scene details
-  const sceneElements = [];
-  if (config.scene?.include_location) {
-    sceneElements.push(`Location: ${generateLocationDescription(config.category)}`);
-  }
-  if (config.scene?.include_time_of_day) {
-    sceneElements.push(`Time: ${getRandomTimeOfDay()}`);
-  }
-  if (config.scene?.include_environment) {
-    sceneElements.push(generateEnvironmentDescription(config.category));
+  // Add subject description if scene details are enabled
+  if (config.enable_scene_details && config.subject?.include_description) {
+    const subjectDesc = generateSubjectDescription(config.category);
+    promptParts.push(subjectDesc);
+    
+    // Add wardrobe if enabled
+    if (config.subject.include_wardrobe) {
+      const wardrobeDesc = generateWardrobeDescription(config.category);
+      promptParts.push(`wearing ${wardrobeDesc.toLowerCase()}`);
+    }
   }
   
-  if (sceneElements.length > 0) {
-    promptParts.push(sceneElements.join(". ") + ".");
+  // Add main action - using the base template directly as it's already a complete sentence
+  promptParts.push(baseTemplate);
+  
+  // Add scene details if enabled
+  if (config.enable_scene_details) {
+    const sceneElements = [];
+    if (config.scene?.include_location) {
+      sceneElements.push(`Location: ${generateLocationDescription(config.category)}`);
+    }
+    if (config.scene?.include_time_of_day) {
+      sceneElements.push(`Time: ${getRandomTimeOfDay()}`);
+    }
+    if (config.scene?.include_environment) {
+      sceneElements.push(generateEnvironmentDescription(config.category));
+    }
+    
+    if (sceneElements.length > 0) {
+      promptParts.push(sceneElements.join(". ") + ".");
+    }
+    
+    // Add visual details
+    if (config.visual_details?.include_props) {
+      const propsDesc = generatePropsDescription(config.category);
+      promptParts.push(`Scene includes: ${propsDesc.toLowerCase()}.`);
+    }
   }
   
-  // Add visual details
-  if (config.visual_details?.include_props) {
-    const propsDesc = generatePropsDescription(config.category);
-    promptParts.push(`Scene includes: ${propsDesc.toLowerCase()}.`);
-  }
-  
-  // Add cinematography details
+  // Add cinematography details if advanced details are enabled
   const cinematographyElements = [];
-  if (config.cinematography?.include_lighting) {
-    cinematographyElements.push(`Lighting: ${generateLightingDescription(config.style)}`);
-  }
-  if (config.cinematography?.include_tone) {
-    cinematographyElements.push(`Overall tone: ${generateToneDescription(config.style)}`);
+  if (config.enable_advanced_details) {
+    if (config.cinematography?.include_lighting) {
+      cinematographyElements.push(`Lighting: ${generateLightingDescription(config.style)}`);
+    }
+    if (config.cinematography?.include_tone) {
+      cinematographyElements.push(`Overall tone: ${generateToneDescription(config.style)}`);
+    }
   }
   
   // Add effects
@@ -197,21 +208,23 @@ async function generatePromptFromConfig(config: PromptConfig): Promise<string> {
     promptParts.push(cinematographyElements.join(". ") + ".");
   }
   
-  // Add audio elements
-  if (config.audio?.include_ambient) {
-    const ambientDesc = generateAmbientDescription(config.category);
-    promptParts.push(`Audio: ${ambientDesc}.`);
-  }
-  
-  if (config.audio?.include_dialogue) {
-    const duration = parseInt(config.duration.split('-')[0]) || 5;
-    promptParts.push(`Features ${duration}-second dialogue segment with documentary-style narration.`);
-  }
-  
-  // Add color palette
-  if (config.color_palette) {
-    const colorDesc = generateColorPalette(config.style);
-    promptParts.push(`Color palette: ${colorDesc}.`);
+  // Add audio elements if advanced details are enabled
+  if (config.enable_advanced_details) {
+    if (config.audio?.include_ambient) {
+      const ambientDesc = generateAmbientDescription(config.category);
+      promptParts.push(`Audio: ${ambientDesc}.`);
+    }
+    
+    if (config.audio?.include_dialogue) {
+      const duration = parseInt(config.duration.split('-')[0]) || 5;
+      promptParts.push(`Features ${duration}-second dialogue segment with documentary-style narration.`);
+    }
+    
+    // Add color palette
+    if (config.color_palette) {
+      const colorDesc = generateColorPalette(config.style);
+      promptParts.push(`Color palette: ${colorDesc}.`);
+    }
   }
   
   // Add style and complexity modifiers

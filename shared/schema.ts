@@ -61,6 +61,11 @@ export const promptConfigSchema = z.object({
     dynamic_lighting: z.boolean(),
     camera_movement: z.boolean(),
   }),
+  // Section toggles
+  enable_shot_details: z.boolean().optional(),
+  enable_scene_details: z.boolean().optional(),
+  enable_advanced_details: z.boolean().optional(),
+  // Optional detailed configurations (only used when enabled)
   shot: z.object({
     composition: z.string(),
     camera_motion: z.string(),

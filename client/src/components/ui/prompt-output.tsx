@@ -104,7 +104,6 @@ export default function PromptOutput({
   const handleCopyVariationJSON = async (variation: string) => {
     try {
       const jsonData = {
-        prompt: variation,
         category: config.category,
         style: config.style,
         duration: config.duration,
@@ -148,7 +147,6 @@ export default function PromptOutput({
 
   const formatVariationJSON = (variation: string) => {
     const jsonData = {
-      prompt: variation,
       category: config.category,
       style: config.style,
       duration: config.duration,
@@ -193,7 +191,6 @@ export default function PromptOutput({
     if (!prompt) return;
 
     const jsonData = {
-      prompt: prompt,
       category: config.category,
       style: config.style,
       duration: config.duration,
@@ -248,7 +245,6 @@ export default function PromptOutput({
     if (!prompt) return;
 
     const jsonData = {
-      prompt: prompt,
       category: config.category,
       style: config.style,
       duration: config.duration,
