@@ -104,19 +104,13 @@ export default function PromptOutput({
   const handleCopyVariationJSON = async (variation: string) => {
     try {
       const jsonData = {
-        prompt: variation,
+        text: variation,
         settings: {
           category: config.category,
           style: config.style,
           duration: config.duration,
           complexity: config.complexity,
           elements: config.elements,
-        },
-        metadata: {
-          generated_at: new Date().toISOString(),
-          version: "1.0.0",
-          template_id: undefined,
-          type: "variation",
         },
       };
 
@@ -136,19 +130,13 @@ export default function PromptOutput({
 
   const formatVariationJSON = (variation: string) => {
     const jsonData = {
-      prompt: variation,
+      text: variation,
       settings: {
         category: config.category,
         style: config.style,
         duration: config.duration,
         complexity: config.complexity,
         elements: config.elements,
-      },
-      metadata: {
-        generated_at: new Date().toISOString(),
-        version: "1.0.0",
-        template_id: undefined,
-        type: "variation",
       },
     };
 
@@ -169,18 +157,13 @@ export default function PromptOutput({
     if (!prompt) return;
 
     const jsonData = {
-      prompt,
+      text: prompt,
       settings: {
         category: config.category,
         style: config.style,
         duration: config.duration,
         complexity: config.complexity,
         elements: config.elements,
-      },
-      metadata: {
-        generated_at: new Date().toISOString(),
-        version: "1.0.0",
-        template_id: undefined,
       },
     };
 
@@ -211,18 +194,13 @@ export default function PromptOutput({
     if (!prompt) return;
 
     const jsonData = {
-      prompt,
+      text: prompt,
       settings: {
         category: config.category,
         style: config.style,
         duration: config.duration,
         complexity: config.complexity,
         elements: config.elements,
-      },
-      metadata: {
-        generated_at: new Date().toISOString(),
-        version: "1.0.0",
-        template_id: undefined,
       },
     };
 
