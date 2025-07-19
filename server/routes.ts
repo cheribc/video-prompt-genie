@@ -68,47 +68,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all templates
-  app.get("/api/templates", async (req, res) => {
-    try {
-      const category = req.query.category as string | undefined;
-      const templates = await storage.getTemplates(category);
-      res.json(templates);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch templates" });
-    }
-  });
 
-  // Search templates
-  app.get("/api/templates/search", async (req, res) => {
-    try {
-      const query = req.query.q as string;
-      if (!query) {
-        return res.status(400).json({ message: "Search query is required" });
-      }
-      const templates = await storage.searchTemplates(query);
-      res.json(templates);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to search templates" });
-    }
-  });
-
-  // Use a template (increment usage count)
-  app.post("/api/templates/:id/use", async (req, res) => {
-    try {
-      const templateId = parseInt(req.params.id);
-      const template = await storage.getTemplateById(templateId);
-      
-      if (!template) {
-        return res.status(404).json({ message: "Template not found" });
-      }
-
-      await storage.updateTemplateUsage(templateId);
-      res.json({ message: "Template usage updated" });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to update template usage" });
-    }
-  });
 
   const httpServer = createServer(app);
   return httpServer;
@@ -116,13 +76,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 // Helper function to generate natural language prompt based on configuration
 async function generatePromptFromConfig(config: PromptConfig): Promise<string> {
-  const templates = getPromptTemplates();
-  const categoryTemplates = templates[config.category] || templates["Sports & Athletics"];
-  const baseTemplate = categoryTemplates[Math.floor(Math.random() * categoryTemplates.length)];
-  
   let promptParts: string[] = [];
   
-  // Start with shot composition if enabled
+  // Always include subject description
+  const subjectDesc = generateSubjectDescription(config.category);
+  promptParts.push(subjectDesc);
+  
+  // Add main action
+  const baseAction = generateActionDescription(config.category);
+  promptParts.push(baseAction);
+  
+  // Add wardrobe if scene details are enabled
+  if (config.enable_scene_details && config.subject?.include_wardrobe) {
+    const wardrobeDesc = generateWardrobeDescription(config.category);
+    promptParts.push(`wearing ${wardrobeDesc.toLowerCase()}`);
+  }
+  
+  // Add shot composition if enabled
   if (config.enable_shot_details && config.shot) {
     const shotDetails = [];
     shotDetails.push(config.shot.composition || "Medium shot");
@@ -137,31 +107,6 @@ async function generatePromptFromConfig(config: PromptConfig): Promise<string> {
     }
     promptParts.push(`${shotDetails.join(", ")}.`);
   }
-  
-  // Add subject description if scene details are enabled
-  if (config.enable_scene_details && config.subject?.include_description) {
-    const subjectDesc = generateSubjectDescription(config.category);
-    promptParts.push(subjectDesc);
-    
-    // Add wardrobe if enabled
-    if (config.subject.include_wardrobe) {
-      const wardrobeDesc = generateWardrobeDescription(config.category);
-      promptParts.push(`wearing ${wardrobeDesc.toLowerCase()}`);
-    }
-  }
-  
-  // Add main action - using the base template's action property or fallback
-  let baseAction: string;
-  if (baseTemplate && typeof baseTemplate === 'object' && baseTemplate.action) {
-    baseAction = baseTemplate.action;
-  } else if (typeof baseTemplate === 'string') {
-    baseAction = baseTemplate;
-  } else {
-    baseAction = generateActionDescription(config.category);
-  }
-  
-  // Insert action at the beginning for better flow
-  promptParts.unshift(baseAction);
   
   // Add scene details if enabled
   if (config.enable_scene_details) {
@@ -320,6 +265,76 @@ function generateSubjectDescription(category: string): string {
       "Rock climber, athletic woman in her 30s with braided auburn hair, wearing climbing harness and chalk-dusted hands, sinewy arms and legs, determined expression scaling cliff face",
       "Professional surfer, 25-year-old man with sun-bleached hair and tanned skin, wearing black wetsuit, balanced stance on surfboard, reading the massive wave with expert timing",
       "Skydiving instructor, experienced 40s woman with short blonde hair, wearing colorful jumpsuit and goggles, confident smile and strong build from years of extreme sports"
+    ],
+    "Romance & Relationships": [
+      "Young couple in their 20s, woman with flowing dark hair wearing elegant dress, man in tailored suit with warm smile, holding hands with obvious affection",
+      "Middle-aged couple, 40s woman with gentle eyes and natural beauty, man with salt-and-pepper beard, both radiating mature love and contentment",
+      "Newlyweds, bride with radiant smile in flowing white dress, groom with tender expression in classic tuxedo, joy evident in their intimate embrace"
+    ],
+    "Action & Adventure": [
+      "Adventure explorer, 30s woman with weathered leather jacket and determined gaze, athletic build from years of outdoor challenges, confident stance with survival gear",
+      "Treasure hunter, rugged 35-year-old man with stubbled jaw and keen eyes, wearing practical adventure clothing, experienced hands holding ancient map",
+      "Expedition leader, strong woman in her 40s with short practical hair, wearing technical outdoor gear, commanding presence with years of wilderness experience"
+    ],
+    "Drama & Emotion": [
+      "Theater actress, elegant woman in her 30s with expressive brown eyes, wearing period costume, graceful movements that convey deep emotional range",
+      "Grieving widower, distinguished 50s man with kind but sorrowful eyes, wearing simple dark clothing, weathered hands that tell stories of loss and resilience",
+      "Young artist, passionate 20s woman with paint-stained fingers and creative energy, wearing bohemian clothing, intense gaze focused on her craft"
+    ],
+    "Comedy & Entertainment": [
+      "Stand-up comedian, energetic 30s man with animated facial expressions, wearing casual but stylish clothing, natural charisma and perfect comedic timing",
+      "Circus performer, agile woman in her 20s with bright costume and infectious smile, athletic build from years of acrobatic training, joy radiating from every movement",
+      "Street entertainer, charismatic 40s man with expressive eyes and theatrical gestures, colorful vintage clothing, natural ability to captivate audiences"
+    ],
+    "Horror & Thriller": [
+      "Paranormal investigator, serious 35-year-old woman with sharp eyes and professional demeanor, wearing practical dark clothing, equipment-laden belt, fearless expression",
+      "Detective, weathered 40s man with observant gaze and worn leather jacket, experienced hands that have seen too much, methodical approach to solving mysteries",
+      "Survivor, young woman in her 20s with determined expression and cautious movements, practical clothing showing signs of struggle, resourceful and alert"
+    ],
+    "Science Fiction": [
+      "Space explorer, confident woman in her 30s wearing sleek futuristic suit, intelligent eyes adapted to cosmic environments, advanced technology integrated into her gear",
+      "Cyborg engineer, 40s man with partially synthetic features and enhanced abilities, wearing technical jumpsuit with electronic interfaces, calm precision in every movement",
+      "Alien contact specialist, brilliant woman in her 40s with kind eyes and patient demeanor, wearing diplomatic attire suitable for first contact scenarios"
+    ],
+    "Documentary Style": [
+      "Master craftsman, elderly man in his 60s with skilled weathered hands, wearing traditional work clothing, decades of expertise evident in every careful movement",
+      "Cultural anthropologist, scholarly woman in her 50s with observant eyes and respectful demeanor, practical field clothing, notebook always in hand",
+      "Wildlife conservationist, passionate 40s man with sun-weathered skin and gentle approach to animals, wearing khaki field gear, deep connection to nature"
+    ],
+    "Fantasy & Magic": [
+      "Mystical sorceress, ethereal woman in her 30s with flowing robes and ancient wisdom in her eyes, hands that channel otherworldly energy, graceful supernatural presence",
+      "Dragon rider, brave young man in his 20s with wind-swept hair and fearless expression, wearing leather armor with magical runes, bond with mythical creatures",
+      "Forest guardian, ageless woman with nature-touched features and flowing green garments, eyes that hold centuries of woodland secrets, protector of magical realms"
+    ],
+    "Music & Dance": [
+      "Prima ballerina, elegant woman in her 20s with perfect posture and graceful extensions, wearing classical tutu, years of training evident in every refined movement",
+      "Jazz musician, soulful 40s man with expressive hands and deep musical understanding, wearing vintage suit, instrument as natural extension of his being",
+      "Contemporary dancer, athletic woman in her 20s with fluid movements and emotional expression, wearing modern dance attire, storytelling through physical artistry"
+    ],
+    "Food & Cooking": [
+      "Master chef, passionate 45-year-old man with culinary precision and creative vision, wearing traditional white chef coat, hands that craft edible masterpieces",
+      "Pastry artist, delicate woman in her 30s with meticulous attention to detail, wearing clean apron, fingers skilled in creating beautiful desserts",
+      "Farm-to-table cook, earthy woman in her 40s with connection to ingredients, wearing casual kitchen attire, knowledge of sustainable cooking practices"
+    ],
+    "Travel & Nature": [
+      "Nature photographer, patient woman in her 30s with keen eye for natural beauty, wearing outdoor photography vest, camera as constant companion",
+      "Mountain guide, experienced 40s man with strong build and weather-beaten face, wearing technical climbing gear, deep knowledge of wilderness survival",
+      "Travel blogger, adventurous woman in her 20s with curious spirit and cultural sensitivity, wearing practical travel clothing, passport stamps telling global stories"
+    ],
+    "Technology": [
+      "Software developer, focused woman in her 30s with logical mind and problem-solving skills, wearing comfortable casual clothing, multiple monitors reflecting code",
+      "AI researcher, brilliant 40s man with innovative thinking and ethical considerations, wearing business casual attire, bridging human and artificial intelligence",
+      "Tech entrepreneur, dynamic woman in her 20s with visionary leadership and startup energy, wearing modern professional clothing, changing world through innovation"
+    ],
+    "Fashion & Beauty": [
+      "Fashion designer, creative woman in her 30s with artistic vision and impeccable style, wearing avant-garde clothing of her own design, sketchbook always nearby",
+      "Professional model, statuesque woman in her 20s with striking features and confident presence, wearing high-fashion garments, natural ability to embody designer visions",
+      "Beauty influencer, charismatic woman in her 20s with flawless makeup skills and engaging personality, wearing trendy clothing, camera-ready at all moments"
+    ],
+    "Business & Professional": [
+      "CEO executive, authoritative woman in her 40s with sharp business acumen and leadership presence, wearing tailored power suit, commanding respect in boardroom",
+      "Investment banker, analytical man in his 30s with quick decision-making skills and market expertise, wearing expensive business attire, phone constantly in hand",
+      "Management consultant, strategic woman in her 30s with problem-solving mindset and client focus, wearing professional consulting attire, presentation materials ready"
     ]
   };
   const categorySubjects = subjects[category] || subjects["Sports & Athletics"];
@@ -442,42 +457,7 @@ function generateEnvironmentDescription(category: string): string {
   return categoryEnvironments[Math.floor(Math.random() * categoryEnvironments.length)];
 }
 
-function generateActionDescription(category: string): string {
-  const actions = {
-    "Sports & Athletics": [
-      "Executes perfect technique with athletic precision and competitive intensity",
-      "Demonstrates peak physical performance in crucial competitive moment",
-      "Shows athletic mastery through fluid movement and strategic thinking"
-    ],
-    "Urban & Street": [
-      "Moves through urban environment with street-smart confidence",
-      "Navigates city obstacles with creative problem-solving and style",
-      "Expresses urban culture through movement and artistic expression"
-    ],
-    "Nature & Wildlife": [
-      "Displays natural instincts and survival behaviors in wild habitat",
-      "Demonstrates adaptation to natural environment and seasonal changes",
-      "Shows harmony between creature and pristine natural setting"
-    ],
-    "Human Drama": [
-      "Reveals deep emotion through authentic facial expression and body language",
-      "Communicates complex feelings through subtle gestural storytelling",
-      "Displays human vulnerability and strength in meaningful moment"
-    ],
-    "Vehicle Action": [
-      "Demonstrates expert vehicle control through technical driving skill",
-      "Shows precision and timing in high-speed competitive situation",
-      "Executes complex maneuver with mechanical understanding and experience"
-    ],
-    "Adventure & Extreme": [
-      "Pushes physical and mental boundaries in challenging extreme situation",
-      "Shows courage and skill in face of natural dangers and obstacles",
-      "Demonstrates specialized technique required for extreme sports mastery"
-    ]
-  };
-  const categoryActions = actions[category] || actions["Sports & Athletics"];
-  return categoryActions[Math.floor(Math.random() * categoryActions.length)];
-}
+
 
 function generatePropsDescription(category: string): string {
   const props = {
@@ -618,97 +598,130 @@ function generateColorPalette(style: string): string {
   return stylePalettes[Math.floor(Math.random() * stylePalettes.length)];
 }
 
-function getPromptTemplates(): Record<string, any[]> {
-  return {
+function generateActionDescription(category: string): string {
+  const actions = {
     "Sports & Athletics": [
-      { action: "performs spectacular diving catch during crucial game moment" },
-      { action: "sprints across field under stadium lights, dodging defenders" },
-      { action: "executes perfect bicycle kick in slow motion" },
-      { action: "leaps for slam dunk with dramatic lighting" }
+      "performs spectacular diving catch during crucial game moment",
+      "sprints across field under stadium lights, dodging defenders",
+      "executes perfect bicycle kick in slow motion",
+      "leaps for slam dunk with dramatic lighting",
+      "serves tennis ball with powerful precision",
+      "completes gymnastics routine with graceful landing"
     ],
     "Action & Adventure": [
-      { action: "navigates treacherous mountain pass with determination" },
-      { action: "leaps across dangerous chasm in ancient ruins" },
-      { action: "scales towering cliff face during thunderstorm" },
-      { action: "pursues through dense jungle canopy" }
+      "navigates treacherous mountain pass with determination",
+      "leaps across dangerous chasm in ancient ruins", 
+      "scales towering cliff face during thunderstorm",
+      "pursues through dense jungle canopy",
+      "rappels down steep canyon wall",
+      "crosses narrow bridge over raging river"
     ],
     "Drama & Emotion": [
-      { action: "sits quietly by rain-streaked window processing emotions" },
-      { action: "embraces loved one after long separation" },
-      { action: "delivers powerful speech to captivated audience" },
-      { action: "works late into night by lamplight" }
+      "sits quietly by rain-streaked window processing emotions",
+      "embraces loved one after long separation",
+      "delivers powerful speech to captivated audience", 
+      "works late into night by lamplight",
+      "reads letter with tears in eyes",
+      "comforts friend during difficult moment"
     ],
     "Comedy & Entertainment": [
-      { action: "delivers perfectly timed comedic gesture on stage" },
-      { action: "performs elaborate pratfall with expert timing" },
-      { action: "engages audience with animated storytelling" },
-      { action: "executes complex dance routine with humor" }
+      "delivers perfectly timed comedic gesture on stage",
+      "performs elaborate pratfall with expert timing",
+      "engages audience with animated storytelling",
+      "executes complex dance routine with humor",
+      "improvises witty response to unexpected situation",
+      "entertains crowd with magic tricks and jokes"
     ],
     "Horror & Thriller": [
-      { action: "cautiously explores dimly lit corridor" },
-      { action: "hides in shadows while tension builds" },
-      { action: "investigates mysterious sounds in darkness" },
-      { action: "flees through fog-covered cemetery" }
+      "cautiously explores dimly lit corridor",
+      "hides in shadows while tension builds",
+      "investigates mysterious sounds in darkness", 
+      "flees through fog-covered cemetery",
+      "discovers hidden room behind bookshelf",
+      "confronts supernatural presence with courage"
     ],
     "Romance & Relationships": [
-      { action: "shares intimate moment in softly lit garden" },
-      { action: "dances together under starlit sky" },
-      { action: "walks hand in hand along beach at sunset" },
-      { action: "prepares surprise dinner by candlelight" }
+      "shares intimate moment in softly lit garden",
+      "dances together under starlit sky",
+      "walks hand in hand along beach at sunset",
+      "prepares surprise dinner by candlelight",
+      "exchanges meaningful glances across crowded room",
+      "writes heartfelt love letter at antique desk"
     ],
     "Science Fiction": [
-      { action: "examines advanced technology in spacecraft interior" },
-      { action: "navigates through holographic interface displays" },
-      { action: "explores alien landscape with scanning equipment" },
-      { action: "operates complex futuristic machinery" }
+      "examines advanced technology in spacecraft interior",
+      "navigates through holographic interface displays",
+      "explores alien landscape with scanning equipment",
+      "operates complex futuristic machinery",
+      "communicates with alien life forms",
+      "travels through interdimensional portal"
     ],
     "Documentary Style": [
-      { action: "demonstrates traditional craft with weathered hands" },
-      { action: "works in natural environment showcasing expertise" },
-      { action: "explains process to camera with authentic passion" },
-      { action: "preserves cultural tradition through skilled practice" }
+      "demonstrates traditional craft with weathered hands",
+      "works in natural environment showcasing expertise",
+      "explains process to camera with authentic passion",
+      "preserves cultural tradition through skilled practice",
+      "shares knowledge gained from decades of experience",
+      "teaches apprentice time-honored techniques"
     ],
     "Fantasy & Magic": [
-      { action: "channels ethereal energy in enchanted forest clearing" },
-      { action: "casts spell with mystical gestures and glowing symbols" },
-      { action: "soars on magical wings through clouded mountains" },
-      { action: "discovers ancient artifact in hidden temple" }
+      "channels ethereal energy in enchanted forest clearing",
+      "casts spell with mystical gestures and glowing symbols",
+      "soars on magical wings through clouded mountains",
+      "discovers ancient artifact in hidden temple",
+      "battles mythical creatures with enchanted sword",
+      "transforms ordinary objects through magical power"
     ],
     "Music & Dance": [
-      { action: "performs with passionate intensity under stage lights" },
-      { action: "moves in perfect rhythm to flowing melody" },
-      { action: "plays intricate piece on classical instrument" },
-      { action: "conducts orchestra with dramatic flourishes" }
+      "performs with passionate intensity under stage lights",
+      "moves in perfect rhythm to flowing melody",
+      "plays intricate piece on classical instrument",
+      "conducts orchestra with dramatic flourishes",
+      "improvises solo during jazz performance",
+      "teaches complex choreography to eager students"
     ],
     "Food & Cooking": [
-      { action: "prepares exquisite dish with precise movements" },
-      { action: "flames leap from sizzling pan in busy kitchen" },
-      { action: "tastes and seasons with expert palate" },
-      { action: "plates beautiful dish with artistic flair" }
+      "prepares exquisite dish with precise movements",
+      "flames leap from sizzling pan in busy kitchen",
+      "tastes and seasons with expert palate",
+      "plates beautiful dish with artistic flair",
+      "kneads bread dough with practiced technique",
+      "creates molecular gastronomy masterpiece"
     ],
     "Travel & Nature": [
-      { action: "stands at edge of magnificent vista" },
-      { action: "hikes through pristine wilderness trail" },
-      { action: "photographs stunning landscape at golden hour" },
-      { action: "camps under star-filled night sky" }
+      "stands at edge of magnificent vista",
+      "hikes through pristine wilderness trail",
+      "photographs stunning landscape at golden hour",
+      "camps under star-filled night sky",
+      "explores hidden waterfall in remote forest",
+      "watches sunrise from mountain summit"
     ],
     "Technology": [
-      { action: "works intently with cutting-edge equipment" },
-      { action: "codes complex algorithm on multiple screens" },
-      { action: "assembles precision electronic components" },
-      { action: "demonstrates innovative prototype device" }
+      "works intently with cutting-edge equipment",
+      "codes complex algorithm on multiple screens",
+      "assembles precision electronic components",
+      "demonstrates innovative prototype device",
+      "troubleshoots advanced robotic system",
+      "presents breakthrough research to colleagues"
     ],
     "Fashion & Beauty": [
-      { action: "showcases elegant attire with confident grace" },
-      { action: "poses for camera with professional poise" },
-      { action: "applies makeup with artistic precision" },
-      { action: "walks runway with commanding presence" }
+      "showcases elegant attire with confident grace",
+      "poses for camera with professional poise",
+      "applies makeup with artistic precision",
+      "walks runway with commanding presence",
+      "designs custom garment on dress form",
+      "styles hair for glamorous photo shoot"
     ],
     "Business & Professional": [
-      { action: "presents innovative ideas in modern conference room" },
-      { action: "negotiates deal with confident handshake" },
-      { action: "works focused at executive desk" },
-      { action: "leads team meeting with engaging presence" }
+      "presents innovative ideas in modern conference room",
+      "negotiates deal with confident handshake",
+      "works focused at executive desk",
+      "leads team meeting with engaging presence",
+      "analyzes financial data on multiple monitors",
+      "mentors junior colleague with patience"
     ]
   };
+  
+  const categoryActions = actions[category] || actions["Sports & Athletics"];
+  return categoryActions[Math.floor(Math.random() * categoryActions.length)];
 }

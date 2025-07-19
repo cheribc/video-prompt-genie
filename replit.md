@@ -101,20 +101,21 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### January 19, 2025
-- **Comprehensive Category Expansion**: Added detailed video production categories
-  - 4-tab interface: Basic, Shot, Scene, Advanced
-  - Shot controls: composition, camera motion, frame rate, film grain
-  - Scene toggles: subject description, wardrobe, location, time of day, environment
-  - Visual options: action details, props, lighting setup, tone
-  - Audio elements: ambient sound, dialogue specifications
-  - Color palette and advanced cinematography options
-- **Natural Language Prompt Generation**: Changed from JSON output to paragraph format
-  - Prompts generated as flowing natural language text
-  - JSON format option remains available as secondary output
-  - Enhanced readability for AI video model consumption
-- **Copy Functionality Enhancement**: Added comprehensive copy-to-clipboard functionality
-  - Main prompt text copy button
-  - Dedicated JSON format copy button  
-  - Individual copy buttons for each prompt variation
-  - Toast notifications for successful copy operations
+### July 19, 2025
+- **Template System Removal**: Eliminated complex template system for simplified prompt generation
+  - Removed database template storage and API endpoints
+  - Replaced with direct action generation functions for better maintainability
+  - Streamlined backend architecture without template dependencies
+- **Enhanced Subject Integration**: Always include detailed subject descriptions in prompts
+  - Subject descriptions now always appear at the start of every generated prompt
+  - Added comprehensive subject descriptions for all 15 video categories
+  - Fixed template object handling issues that caused "[object Object]" display errors
+- **Complete Category Coverage**: Added subject descriptions for missing categories
+  - Romance & Relationships, Action & Adventure, Drama & Emotion
+  - Comedy & Entertainment, Horror & Thriller, Science Fiction
+  - Documentary Style, Fantasy & Magic, Music & Dance
+  - Food & Cooking, Travel & Nature, Technology, Fashion & Beauty, Business & Professional
+- **Improved Prompt Structure**: Natural language prompts with consistent format
+  - Subject description + Action + Technical details + Style modifiers
+  - Prompts flow naturally for AI video model consumption
+  - Maintained professional video production terminology
