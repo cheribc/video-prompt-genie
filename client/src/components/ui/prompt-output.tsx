@@ -83,6 +83,22 @@ export default function PromptOutput({
     }
   };
 
+  const handleCopyVariation = async (variation: string) => {
+    try {
+      await navigator.clipboard.writeText(variation);
+      toast({
+        title: "Success",
+        description: "Variation copied to clipboard!",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to copy variation.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleExportJSON = () => {
     if (!prompt) return;
 
@@ -260,9 +276,10 @@ export default function PromptOutput({
                       <Button
                         variant="ghost"
                         size="sm"
+                        onClick={() => handleCopyVariation(variation)}
                         className="ml-4 text-slate-400 hover:text-slate-600"
                       >
-                        <ChevronRight className="w-4 h-4" />
+                        <Copy className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
