@@ -58,8 +58,9 @@ export default function PromptOutput({
   const handleCopyToClipboard = async () => {
     if (!prompt) return;
     
+    const promptText = prompt.prompt || prompt;
     try {
-      await navigator.clipboard.writeText(prompt);
+      await navigator.clipboard.writeText(promptText);
       toast({
         title: "Success",
         description: "Prompt copied to clipboard!",
@@ -306,7 +307,7 @@ export default function PromptOutput({
               </div>
             ) : prompt ? (
               <pre className="text-sm text-slate-800 whitespace-pre-wrap font-mono leading-relaxed">
-                {prompt}
+                {prompt.prompt || prompt}
               </pre>
             ) : (
               <p className="text-slate-500 text-center py-8">
