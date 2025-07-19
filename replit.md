@@ -98,3 +98,13 @@ Preferred communication style: Simple, everyday language.
 - **npm run build**: Creates production build of both frontend and backend
 - **npm run start**: Runs production server
 - **npm run db:push**: Applies database schema changes
+
+## Recent Changes
+
+### January 19, 2025
+- **Copy Functionality Enhancement**: Added comprehensive copy-to-clipboard functionality
+  - Main prompt text copy button
+  - Dedicated JSON format copy button  
+  - Individual copy buttons for each prompt variation
+  - Toast notifications for successful copy operations
+- **User Interface Polish**: Improved usability with intuitive copy icons and clear feedback
