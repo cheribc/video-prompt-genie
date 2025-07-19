@@ -150,8 +150,18 @@ async function generatePromptFromConfig(config: PromptConfig): Promise<string> {
     }
   }
   
-  // Add main action - using the base template directly as it's already a complete sentence
-  promptParts.push(baseTemplate);
+  // Add main action - using the base template's action property or fallback
+  let baseAction: string;
+  if (baseTemplate && typeof baseTemplate === 'object' && baseTemplate.action) {
+    baseAction = baseTemplate.action;
+  } else if (typeof baseTemplate === 'string') {
+    baseAction = baseTemplate;
+  } else {
+    baseAction = generateActionDescription(config.category);
+  }
+  
+  // Insert action at the beginning for better flow
+  promptParts.unshift(baseAction);
   
   // Add scene details if enabled
   if (config.enable_scene_details) {
@@ -616,35 +626,89 @@ function getPromptTemplates(): Record<string, any[]> {
       { action: "executes perfect bicycle kick in slow motion" },
       { action: "leaps for slam dunk with dramatic lighting" }
     ],
-    "Urban & Street": [
-      { action: "leaps between rooftops in urban cityscape at golden hour" },
-      { action: "weaves through busy downtown traffic in high-speed chase" },
-      { action: "performs complex dance moves on graffiti-covered wall" },
-      { action: "launches off ramp in underground parking garage" }
+    "Action & Adventure": [
+      { action: "navigates treacherous mountain pass with determination" },
+      { action: "leaps across dangerous chasm in ancient ruins" },
+      { action: "scales towering cliff face during thunderstorm" },
+      { action: "pursues through dense jungle canopy" }
     ],
-    "Nature & Wildlife": [
-      { action: "soars through mountain valley with wings spread wide" },
-      { action: "crashes against rocky cliffs in slow motion during sunset" },
-      { action: "sprints across African savanna in pursuit of prey" },
-      { action: "moves through snow-covered forest during twilight" }
+    "Drama & Emotion": [
+      { action: "sits quietly by rain-streaked window processing emotions" },
+      { action: "embraces loved one after long separation" },
+      { action: "delivers powerful speech to captivated audience" },
+      { action: "works late into night by lamplight" }
     ],
-    "Vehicle Action": [
-      { action: "drifts around mountain curve at high speed" },
-      { action: "leans into tight corner on professional track" },
-      { action: "launches over sand dune in desert" },
-      { action: "accelerates down empty highway at sunset" }
+    "Comedy & Entertainment": [
+      { action: "delivers perfectly timed comedic gesture on stage" },
+      { action: "performs elaborate pratfall with expert timing" },
+      { action: "engages audience with animated storytelling" },
+      { action: "executes complex dance routine with humor" }
     ],
-    "Human Drama": [
-      { action: "moves hands across piano keys during emotional performance" },
-      { action: "works intensively in busy kitchen with flames leaping" },
-      { action: "inspires students with passionate gesturing" },
-      { action: "embraces child after long separation" }
+    "Horror & Thriller": [
+      { action: "cautiously explores dimly lit corridor" },
+      { action: "hides in shadows while tension builds" },
+      { action: "investigates mysterious sounds in darkness" },
+      { action: "flees through fog-covered cemetery" }
     ],
-    "Adventure & Extreme": [
-      { action: "scales sheer cliff face during golden hour" },
-      { action: "freefalls through clouds with arms spread wide" },
-      { action: "rides massive wave with perfect balance" },
-      { action: "navigates treacherous trail, launching off jumps" }
+    "Romance & Relationships": [
+      { action: "shares intimate moment in softly lit garden" },
+      { action: "dances together under starlit sky" },
+      { action: "walks hand in hand along beach at sunset" },
+      { action: "prepares surprise dinner by candlelight" }
+    ],
+    "Science Fiction": [
+      { action: "examines advanced technology in spacecraft interior" },
+      { action: "navigates through holographic interface displays" },
+      { action: "explores alien landscape with scanning equipment" },
+      { action: "operates complex futuristic machinery" }
+    ],
+    "Documentary Style": [
+      { action: "demonstrates traditional craft with weathered hands" },
+      { action: "works in natural environment showcasing expertise" },
+      { action: "explains process to camera with authentic passion" },
+      { action: "preserves cultural tradition through skilled practice" }
+    ],
+    "Fantasy & Magic": [
+      { action: "channels ethereal energy in enchanted forest clearing" },
+      { action: "casts spell with mystical gestures and glowing symbols" },
+      { action: "soars on magical wings through clouded mountains" },
+      { action: "discovers ancient artifact in hidden temple" }
+    ],
+    "Music & Dance": [
+      { action: "performs with passionate intensity under stage lights" },
+      { action: "moves in perfect rhythm to flowing melody" },
+      { action: "plays intricate piece on classical instrument" },
+      { action: "conducts orchestra with dramatic flourishes" }
+    ],
+    "Food & Cooking": [
+      { action: "prepares exquisite dish with precise movements" },
+      { action: "flames leap from sizzling pan in busy kitchen" },
+      { action: "tastes and seasons with expert palate" },
+      { action: "plates beautiful dish with artistic flair" }
+    ],
+    "Travel & Nature": [
+      { action: "stands at edge of magnificent vista" },
+      { action: "hikes through pristine wilderness trail" },
+      { action: "photographs stunning landscape at golden hour" },
+      { action: "camps under star-filled night sky" }
+    ],
+    "Technology": [
+      { action: "works intently with cutting-edge equipment" },
+      { action: "codes complex algorithm on multiple screens" },
+      { action: "assembles precision electronic components" },
+      { action: "demonstrates innovative prototype device" }
+    ],
+    "Fashion & Beauty": [
+      { action: "showcases elegant attire with confident grace" },
+      { action: "poses for camera with professional poise" },
+      { action: "applies makeup with artistic precision" },
+      { action: "walks runway with commanding presence" }
+    ],
+    "Business & Professional": [
+      { action: "presents innovative ideas in modern conference room" },
+      { action: "negotiates deal with confident handshake" },
+      { action: "works focused at executive desk" },
+      { action: "leads team meeting with engaging presence" }
     ]
   };
 }
