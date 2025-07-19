@@ -1,0 +1,262 @@
+import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { Button } from "./button";
+import { Card, CardContent, CardHeader, CardTitle } from "./card";
+import { Badge } from "./badge";
+import { Copy, Download, Code, RefreshCw, ChevronRight } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import type { PromptConfig } from "@shared/schema";
+
+interface PromptOutputProps {
+  config: PromptConfig;
+  prompt: string;
+  isGenerating: boolean;
+}
+
+export default function PromptOutput({
+  config,
+  prompt,
+  isGenerating,
+}: PromptOutputProps) {
+  const { toast } = useToast();
+  const [variations, setVariations] = useState<string[]>([]);
+  const [isGeneratingVariations, setIsGeneratingVariations] = useState(false);
+
+  const variationsMutation = useMutation({
+    mutationFn: async (config: PromptConfig) => {
+      const response = await apiRequest("POST", "/api/prompts/variations", config);
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      setVariations(data.variations);
+      setIsGeneratingVariations(false);
+      toast({
+        title: "Success",
+        description: "Prompt variations generated!",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error", 
+        description: "Failed to generate variations.",
+        variant: "destructive",
+      });
+      setIsGeneratingVariations(false);
+    },
+  });
+
+  const handleCopyToClipboard = async () => {
+    if (!prompt) return;
+    
+    try {
+      await navigator.clipboard.writeText(prompt);
+      toast({
+        title: "Success",
+        description: "Prompt copied to clipboard!",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to copy to clipboard.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleExportJSON = () => {
+    if (!prompt) return;
+
+    const jsonData = {
+      prompt,
+      settings: {
+        category: config.category,
+        style: config.style,
+        duration: config.duration,
+        complexity: config.complexity,
+        elements: config.elements,
+      },
+      metadata: {
+        generated_at: new Date().toISOString(),
+        version: "1.0.0",
+        template_id: undefined,
+      },
+    };
+
+    const blob = new Blob([JSON.stringify(jsonData, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `video-prompt-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Success",
+      description: "JSON exported successfully!",
+    });
+  };
+
+  const handleGenerateVariations = () => {
+    setIsGeneratingVariations(true);
+    variationsMutation.mutate(config);
+  };
+
+  const formatJSON = () => {
+    if (!prompt) return;
+
+    const jsonData = {
+      prompt,
+      settings: {
+        category: config.category,
+        style: config.style,
+        duration: config.duration,
+        complexity: config.complexity,
+        elements: config.elements,
+      },
+      metadata: {
+        generated_at: new Date().toISOString(),
+        version: "1.0.0",
+        template_id: undefined,
+      },
+    };
+
+    return JSON.stringify(jsonData, null, 2);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Generated Prompt Preview */}
+      <Card className="shadow-sm">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg">Generated Prompt</CardTitle>
+            <div className="flex items-center space-x-2">
+              <Button variant="outline" size="sm" onClick={handleCopyToClipboard}>
+                <Copy className="w-4 h-4 mr-1" />
+                Copy
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleExportJSON}>
+                <Download className="w-4 h-4 mr-1" />
+                Export
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+            {isGenerating ? (
+              <div className="flex items-center justify-center py-8">
+                <RefreshCw className="w-6 h-6 animate-spin text-slate-400" />
+                <span className="ml-2 text-slate-600">Generating prompt...</span>
+              </div>
+            ) : prompt ? (
+              <pre className="text-sm text-slate-800 whitespace-pre-wrap font-mono leading-relaxed">
+                {prompt}
+              </pre>
+            ) : (
+              <p className="text-slate-500 text-center py-8">
+                Click "Generate Prompt" to create your video prompt
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* JSON Output */}
+      {prompt && (
+        <Card className="shadow-sm">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">JSON Format</CardTitle>
+              <div className="flex items-center space-x-2">
+                <Badge variant="secondary" className="bg-green-100 text-green-700">
+                  Valid JSON
+                </Badge>
+                <Button variant="outline" size="sm">
+                  <Code className="w-4 h-4 mr-1" />
+                  Format
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="bg-slate-900 rounded-lg p-4 border border-slate-200 overflow-x-auto">
+              <pre className="text-sm text-green-400 font-mono leading-relaxed">
+                {formatJSON()}
+              </pre>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Prompt Variations */}
+      {prompt && (
+        <Card className="shadow-sm">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">Alternative Variations</CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleGenerateVariations}
+                disabled={isGeneratingVariations}
+                className="text-primary hover:text-blue-700"
+              >
+                <RefreshCw
+                  className={`w-4 h-4 mr-1 ${
+                    isGeneratingVariations ? "animate-spin" : ""
+                  }`}
+                />
+                Generate More
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {isGeneratingVariations ? (
+              <div className="flex items-center justify-center py-8">
+                <RefreshCw className="w-6 h-6 animate-spin text-slate-400" />
+                <span className="ml-2 text-slate-600">Generating variations...</span>
+              </div>
+            ) : variations.length > 0 ? (
+              <div className="space-y-3">
+                {variations.map((variation, index) => (
+                  <div
+                    key={index}
+                    className="p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="text-sm text-slate-800 mb-2">{variation}</p>
+                        <div className="flex items-center space-x-2 text-xs text-slate-500">
+                          <Badge variant="secondary">{config.category.split(' ')[0]}</Badge>
+                          <Badge variant="secondary">{config.duration}</Badge>
+                          <Badge variant="secondary">{config.complexity}</Badge>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="ml-4 text-slate-400 hover:text-slate-600"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-slate-500 text-center py-8">
+                Click "Generate More" to create prompt variations
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}

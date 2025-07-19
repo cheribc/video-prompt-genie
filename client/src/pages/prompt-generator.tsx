@@ -1,0 +1,55 @@
+import { useState } from "react";
+import Header from "@/components/ui/header";
+import PromptConfig from "@/components/ui/prompt-config";
+import PromptOutput from "@/components/ui/prompt-output";
+import TemplateLibrary from "@/components/ui/template-library";
+import type { PromptConfig as PromptConfigType } from "@shared/schema";
+
+export default function PromptGenerator() {
+  const [config, setConfig] = useState<PromptConfigType>({
+    category: "Sports & Athletics",
+    style: "Cinematic",
+    duration: "5-10 seconds",
+    complexity: "Medium",
+    elements: {
+      weather_effects: false,
+      dynamic_lighting: true,
+      camera_movement: true,
+    },
+  });
+
+  const [generatedPrompt, setGeneratedPrompt] = useState<string>("");
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  return (
+    <div className="min-h-screen bg-white">
+      <Header />
+      
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-1">
+            <PromptConfig
+              config={config}
+              onConfigChange={setConfig}
+              onGenerate={setGeneratedPrompt}
+              isGenerating={isGenerating}
+              setIsGenerating={setIsGenerating}
+            />
+          </div>
+          
+          <div className="lg:col-span-2">
+            <PromptOutput
+              config={config}
+              prompt={generatedPrompt}
+              isGenerating={isGenerating}
+            />
+          </div>
+        </div>
+
+        <div className="mt-8">
+          <TemplateLibrary onTemplateSelect={setConfig} />
+        </div>
+      </main>
+    </div>
+  );
+}
